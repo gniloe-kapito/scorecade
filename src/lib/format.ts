@@ -8,6 +8,29 @@ export function pluralRu(n: number, one: string, few: string, many: string): str
   return many;
 }
 
+/** Числа с тонкими пробелами: formatCount(1113361) → "1 113 361".
+ *  Для онлайна игроков и других крупных счётчиков. */
+export function formatCount(n: number): string {
+  return new Intl.NumberFormat("ru-RU").format(n);
+}
+
+/** Компактный вид онлайна: 1 113 361 → "1,1 млн", 298 050 → "298 тыс.",
+ *  16 196 → "16,2 тыс.". Для метрик в строках чарта. */
+export function formatCountCompact(n: number): string {
+  if (n >= 1_000_000) {
+    const v = n / 1_000_000;
+    return `${(v >= 10 ? Math.round(v) : Math.round(v * 10) / 10)
+      .toString()
+      .replace(".", ",")} млн`;
+  }
+  if (n >= 10_000) return `${Math.round(n / 1000)} тыс.`;
+  if (n >= 1000) {
+    const v = Math.round((n / 1000) * 10) / 10;
+    return `${v.toString().replace(".", ",")} тыс.`;
+  }
+  return new Intl.NumberFormat("ru-RU").format(n);
+}
+
 export function timeAgo(iso: string): string {
   const rtf = new Intl.RelativeTimeFormat("ru", { numeric: "auto" });
   const diffSec = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
@@ -56,9 +79,12 @@ export function formatAverage(value: number | null): string {
   return value.toLocaleString("ru-RU", { maximumFractionDigits: 1 });
 }
 
-/** Tailwind classes for the Metacritic badge color tier. */
+/** Tailwind classes for the Metacritic badge color tier.
+ *  Читаемо и в светлой, и в тёмной теме (dark: вариант для глубоких тонов). */
 export function metacriticTone(score: number): string {
-  if (score >= 75) return "border-emerald-400/40 bg-emerald-400/10 text-emerald-300";
-  if (score >= 50) return "border-amber-400/40 bg-amber-400/10 text-amber-300";
-  return "border-red-400/40 bg-red-400/10 text-red-300";
+  if (score >= 75)
+    return "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+  if (score >= 50)
+    return "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300";
+  return "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300";
 }

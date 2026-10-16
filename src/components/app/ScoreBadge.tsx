@@ -8,9 +8,8 @@ const SIZE_CLASSES: Record<Size, string> = {
   lg: "h-12 min-w-12 px-2 text-2xl",
 };
 
-/** Kinopoisk-style at-a-glance tone: lime for good, neutral for middling,
- *  muted red for poor — all from the existing palette (single bright accent
- *  stays lime; the others are quieted down). */
+/** Kinopoisk-style at-a-glance tone: accent for good, neutral for middling,
+ *  muted red for poor — спокойные цвета из текущей темы. */
 function toneFor(score: number): string {
   if (score >= 7) {
     return "border-primary/35 bg-primary/15 text-primary";
@@ -36,7 +35,6 @@ export function ScoreBadge({
       className={cn(
         "inline-flex items-center justify-center rounded-lg border font-extrabold tabular-nums",
         toneFor(score),
-        score === 10 && "shadow-[0_0_16px_-4px_var(--primary)]",
         SIZE_CLASSES[size],
         className,
       )}

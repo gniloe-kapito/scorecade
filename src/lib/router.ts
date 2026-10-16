@@ -55,3 +55,19 @@ export function loginRedirectUrl(): string {
   const from = window.location.hash || "#/";
   return `#/login?from=${encodeURIComponent(from)}`;
 }
+
+/** Широкие страницы (контейнер 1280px вместо 900px): главная, каталог,
+ *  библиотека и профили (как в Steam — баннер и статы любят ширину);
+ *  остальные страницы остаются компактными. */
+export function isWideRoute(path: string): boolean {
+  return (
+    path === "/" ||
+    path === "/games" ||
+    path.startsWith("/games/") ||
+    path === "/library" ||
+    path.startsWith("/library/") ||
+    path === "/me" ||
+    path.startsWith("/me/") ||
+    path.startsWith("/u/")
+  );
+}

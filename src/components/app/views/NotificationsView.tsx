@@ -150,7 +150,7 @@ export function NotificationsView() {
                 "rounded-full border px-3 py-1 text-xs font-bold transition-colors",
                 active
                   ? "border-primary/50 bg-primary/15 text-primary"
-                  : "border-border/70 bg-card/60 text-muted-foreground hover:border-primary/30 hover:text-foreground",
+                  : "border-border bg-card/60 text-muted-foreground hover:border-primary/30 hover:text-foreground",
               )}
             >
               {f.label}
@@ -165,10 +165,10 @@ export function NotificationsView() {
       {/* List */}
       <section
         aria-label="Список уведомлений"
-        className="mt-4 overflow-hidden rounded-2xl border border-border/70 bg-card/70"
+        className="mt-4 overflow-hidden rounded-xl border border-border bg-card"
       >
         {notifsQuery.isLoading ? (
-          <div className="divide-y divide-border/60">
+          <div className="divide-y divide-border">
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="flex items-center gap-3 p-4">
                 <Skeleton className="h-9 w-9 rounded-full" />
@@ -196,7 +196,7 @@ export function NotificationsView() {
             />
           </div>
         ) : (
-          <ul className="divide-y divide-border/60">
+          <ul className="divide-y divide-border">
             {filtered.map((n) => (
               <li key={n.id}>
                 <NotificationRow item={n} variant="page" />

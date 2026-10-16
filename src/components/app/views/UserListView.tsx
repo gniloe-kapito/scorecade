@@ -51,7 +51,7 @@ export function UserListView({
 
       <div className="mt-5">
         {listQuery.isLoading ? (
-          <div className="rounded-2xl border border-border/70 bg-card/70 px-4">
+          <div className="rounded-xl border border-border bg-card px-4">
             <ListSkeleton count={4} />
           </div>
         ) : listQuery.error ? (
@@ -80,7 +80,7 @@ export function UserListView({
             }
           />
         ) : (
-          <ul className="divide-y divide-border/60 rounded-2xl border border-border/70 bg-card/70 px-4">
+          <ul className="divide-y divide-border rounded-xl border border-border bg-card px-4">
             {(listQuery.data?.items ?? []).map((u) => (
               <li key={u.username}>
                 <a

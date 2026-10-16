@@ -9,6 +9,9 @@ interface GameCoverProps {
   gameId?: string | null;
   name: string;
   className?: string;
+  /** Для широких слотов (капсулы 16:9): пробуем горизонтальные
+   *  варианты обложки раньше вертикальных. */
+  preferHeader?: boolean;
 }
 
 /**
@@ -16,17 +19,28 @@ interface GameCoverProps {
  * vertical cover → header → CDN vertical → CDN header → letter placeholder.
  * Failed URLs are remembered, so the next source is tried automatically.
  */
-export function GameCover({ cover, header, gameId, name, className }: GameCoverProps) {
+export function GameCover({
+  cover,
+  header,
+  gameId,
+  name,
+  className,
+  preferHeader = false,
+}: GameCoverProps) {
   const appid = gameId?.startsWith("steam:") ? gameId.slice("steam:".length) : null;
 
   const sources = useMemo(() => {
-    const list: (string | null | undefined)[] = [cover, header];
-    if (appid) {
-      list.push(`https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/library_600x900.jpg`);
-      list.push(`https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/header.jpg`);
-    }
+    const cdn: (string | null)[] = appid
+      ? [
+          `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/library_600x900.jpg`,
+          `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/header.jpg`,
+        ]
+      : [];
+    const list: (string | null | undefined)[] = preferHeader
+      ? [header, cdn[1], cover, cdn[0]]
+      : [cover, header, ...cdn];
     return list.filter((s): s is string => typeof s === "string" && s.length > 0);
-  }, [cover, header, appid]);
+  }, [cover, header, appid, preferHeader]);
 
   const [failed, setFailed] = useState<ReadonlySet<string>>(() => new Set());
   const src = sources.find((s) => !failed.has(s));

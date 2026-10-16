@@ -14,14 +14,12 @@ import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
 import {
-  BookmarkPlus,
   Building2,
   CalendarDays,
   Check,
   ChevronDown,
   ChevronLeft,
   ChevronUp,
-  CircleSlash,
   Command,
   ExternalLink,
   Gamepad2,
@@ -45,9 +43,10 @@ import {
 import { api, ApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { backOrHome, loginRedirectUrl, useHashRoute } from "@/lib/router";
-import { metacriticTone, timeAgo, formatDateTime, formatAverage, pluralRu } from "@/lib/format";
+import { metacriticTone, timeAgo, formatDateTime, formatAverage, formatCountCompact, pluralRu } from "@/lib/format";
 import { MAX_REVIEW_LENGTH, SITE_NAME } from "@/lib/config";
-import { RatingWheel } from "@/components/app/RatingWheel";
+import { ScorePicker } from "@/components/app/ScorePicker";
+import { StatusPicker } from "@/components/app/StatusPicker";
 import { GameCover } from "@/components/app/GameCover";
 import { ScoreBadge } from "@/components/app/ScoreBadge";
 import { LikeButton } from "@/components/app/LikeButton";
@@ -79,6 +78,7 @@ import type {
   RatingRow,
   StatusRow,
 } from "@/lib/types";
+import { STATUS_LABELS } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 let purifyHookAdded = false;
@@ -142,6 +142,17 @@ export function GameView({ id }: { id: string }) {
     queryFn: () => api<{ statuses: StatusRow[] }>("/api/me/statuses"),
     enabled: !!user,
     staleTime: Infinity,
+  });
+
+  // Текущий онлайн — официальный Web API Valve; живая цифра на странице игры.
+  const onlineQuery = useQuery({
+    queryKey: ["online", id],
+    queryFn: () =>
+      api<{ players: number | null }>(
+        `/api/games/online?id=${encodeURIComponent(id)}`,
+      ),
+    staleTime: 60_000,
+    retry: 0,
   });
 
   const game = gameQuery.data;
@@ -294,12 +305,13 @@ export function GameView({ id }: { id: string }) {
     setLiveScore(n);
   }, []);
 
-  // The score currently selected in the dialog (wheel position), falling
-  // back to the persisted score, then to the neutral rest position 5.
-  const selectedScore = liveScore ?? myRating?.score ?? 5;
+  // The score currently selected in the dialog (button grid), falling
+  // back to the persisted score. null = not chosen yet.
+  const selectedScore: number | null = liveScore ?? myRating?.score ?? null;
 
-  /** Explicit save — the wheel never saves on its own (customer rule). */
+  /** Explicit save — the picker never saves on its own (customer rule). */
   const submitScore = useCallback(() => {
+    if (selectedScore === null) return;
     void persist(selectedScore, reviewDraft.trim() ? reviewDraft.trim() : null);
   }, [persist, selectedScore, reviewDraft]);
 
@@ -347,9 +359,9 @@ export function GameView({ id }: { id: string }) {
     }
   }, [id, queryClient]);
 
-  // ---- statuses: «Не играл» / «Хочу поиграть» / «Играл» ----
+  // ---- statuses: «Играю» / «Пройдена» / «Брошена» / «Играл(а)» / «Хочу сыграть» ----
   const applyStatus = useCallback(
-    async (next: "played" | "want" | "none", silentToast = false) => {
+    async (next: GameStatusValue | "none", silentToast = false) => {
       if (!user || !game) {
         window.location.hash = loginRedirectUrl();
         return;
@@ -366,14 +378,14 @@ export function GameView({ id }: { id: string }) {
         patchStatusCache(next === "none" ? null : next);
         void queryClient.invalidateQueries({ queryKey: ["community", id] });
         void queryClient.invalidateQueries({ queryKey: ["profile"] });
+        void queryClient.invalidateQueries({ queryKey: ["library"] });
         if (!silentToast) {
-          if (next === "want") toast("Отмечено: «Хочу поиграть»");
-          else if (next === "played") toast("Отмечено: «Играл»");
-          else toast("Сброшено: «Не играл»");
+          if (next === "none") toast("Отметка снята");
+          else toast(`Отмечено: «${STATUS_LABELS[next]}»`);
         }
       } catch (err) {
         toast.error(
-          err instanceof ApiError ? err.message : "Не удалось сохранить статус",
+          err instanceof ApiError ? err.message : "Не удалось сохранить отметку",
         );
       }
     },
@@ -381,8 +393,8 @@ export function GameView({ id }: { id: string }) {
   );
 
   const pickStatus = useCallback(
-    (next: "played" | "want" | "none") => {
-      // «Не играл» together with a rating is a reset — ask before deleting.
+    (next: GameStatusValue | "none") => {
+      // Снятие отметки вместе с оценкой — это сброс: спросим перед удалением.
       if (next === "none" && myRating) {
         setConfirmNoneOpen(true);
         return;
@@ -396,7 +408,7 @@ export function GameView({ id }: { id: string }) {
     setConfirmNoneOpen(false);
     await removeRating();
     await applyStatus("none", true);
-    toast("Сброшено: «Не играл» (оценка удалена)");
+    toast("Отметка снята (оценка удалена)");
   }, [removeRating, applyStatus]);
 
   // ---- chrome: scrolled top bar ----
@@ -473,7 +485,7 @@ export function GameView({ id }: { id: string }) {
         className={cn(
           "fixed inset-x-0 top-0 z-30 transition-all duration-200",
           scrolled
-            ? "border-b border-border/70 bg-background/85 backdrop-blur-md"
+            ? "border-b border-border bg-background/85 backdrop-blur-md"
             : "bg-gradient-to-b from-background/70 to-transparent",
         )}
       >
@@ -524,67 +536,91 @@ export function GameView({ id }: { id: string }) {
 
       {/* Rating + status bar (Kinopoisk-style: star button next to Metacritic) */}
       <section aria-label="Ваша оценка и статус" className="mb-5">
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/70 bg-card/70 p-3">
-          <div className="flex min-w-0 items-center gap-2.5">
-            {game.metacritic !== null && (
-              <span
-                className={cn(
-                  "shrink-0 rounded-lg border px-2 py-1 text-xs font-extrabold tabular-nums",
-                  metacriticTone(game.metacritic),
-                )}
-                title="Оценка Metacritic"
-              >
-                MC {game.metacritic}
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={() => setRatingOpen(true)}
-              aria-label={
-                myRating
-                  ? `Ваша оценка: ${myRating.score} из 10 — изменить`
-                  : "Поставить оценку"
-              }
-              className={cn(
-                "group flex items-center gap-2 rounded-xl border px-3 py-2 transition-all active:scale-[0.97]",
-                myRating
-                  ? "border-primary/50 bg-primary/10 hover:bg-primary/15"
-                  : "border-primary/40 bg-primary/5 hover:border-primary/60 hover:bg-primary/10",
-              )}
-            >
-              <Star
-                className={cn(
-                  "h-5 w-5 transition-all",
-                  myRating
-                    ? "fill-primary text-primary drop-shadow-[0_0_8px_rgba(166,227,77,0.5)]"
-                    : "text-primary",
-                )}
-                aria-hidden
-              />
-              {myRating ? (
-                <>
-                  <span className="text-xl font-extrabold leading-none tabular-nums text-primary">
-                    {myRating.score}
-                  </span>
-                  <span className="text-[11px] font-semibold text-muted-foreground transition-colors group-hover:text-foreground">
-                    изменить
-                  </span>
-                </>
-              ) : (
-                <span className="text-sm font-bold text-primary">
-                  Поставить оценку
+        <div className="rounded-xl border border-border bg-card p-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              {game.metacritic !== null && (
+                <span
+                  className={cn(
+                    "shrink-0 rounded-md border px-2 py-1 text-xs font-extrabold tabular-nums",
+                    metacriticTone(game.metacritic),
+                  )}
+                  title="Оценка Metacritic"
+                >
+                  MC {game.metacritic}
                 </span>
               )}
-            </button>
+              <button
+                type="button"
+                onClick={() => setRatingOpen(true)}
+                aria-label={
+                  myRating
+                    ? `Ваша оценка: ${myRating.score} из 10 — изменить`
+                    : "Поставить оценку"
+                }
+                className={cn(
+                  "group flex items-center gap-2 rounded-md border px-3 py-2 transition-colors active:scale-[0.98]",
+                  myRating
+                    ? "border-primary/50 bg-[var(--primary-soft)] hover:border-primary"
+                    : "border-primary/40 hover:border-primary/70 hover:bg-[var(--primary-soft)]",
+                )}
+              >
+                <Star
+                  className={cn(
+                    "h-5 w-5",
+                    myRating ? "fill-primary text-primary" : "text-primary",
+                  )}
+                  aria-hidden
+                />
+                {myRating ? (
+                  <>
+                    <span className="text-xl font-extrabold leading-none tabular-nums text-primary">
+                      {myRating.score}
+                    </span>
+                    <span className="text-[11px] font-semibold text-muted-foreground transition-colors group-hover:text-foreground">
+                      изменить
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-sm font-bold text-primary">
+                    Поставить оценку
+                  </span>
+                )}
+              </button>
+              {myStatus ? (
+                <span className="rounded-md border border-border bg-secondary px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                  {STATUS_LABELS[myStatus]}
+                </span>
+              ) : null}
+            </div>
           </div>
-          <StatusSegment current={myStatus} onPick={pickStatus} />
+          {/* Отметка игрока — отдельными кнопками (референс v3) */}
+          <div className="mt-3 border-t border-border pt-3">
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Твоя отметка
+            </p>
+            <StatusPicker
+              value={myStatus}
+              onChange={pickStatus}
+              onClear={() => pickStatus("none")}
+            />
+          </div>
         </div>
       </section>
 
       {/* Meta card */}
       <section aria-label="Информация об игре" className="mb-5">
-        <div className="rounded-2xl border border-border/70 bg-card/70 p-4">
+        <div className="rounded-xl border border-border bg-card p-4">
           <div className="flex flex-wrap items-center gap-1.5">
+            {onlineQuery.data?.players != null && (
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--good)]/45 bg-[var(--good)]/10 px-2.5 py-1 text-[11px] font-bold text-[var(--good)]"
+                title="Играют прямо сейчас — официальный API Steam, обновляется раз в пару минут"
+              >
+                <span aria-hidden className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--good)]" />
+                {formatCountCompact(onlineQuery.data.players)} играют сейчас
+              </span>
+            )}
             {game.isFree && (
               <span className="rounded-full border border-primary/40 bg-primary/15 px-2.5 py-1 text-[11px] font-bold text-primary">
                 Бесплатно
@@ -613,7 +649,7 @@ export function GameView({ id }: { id: string }) {
       {/* Description */}
       {(game.shortDescription || game.descriptionHtml) && (
         <section aria-label="Описание игры" className="mb-5">
-          <div className="rounded-2xl border border-border/70 bg-card/70 p-4">
+          <div className="rounded-xl border border-border bg-card p-4">
             <SectionTitle className="mb-2">Об игре</SectionTitle>
             {game.shortDescription && (
               <p className="text-[15px] leading-relaxed text-foreground/85">
@@ -640,7 +676,7 @@ export function GameView({ id }: { id: string }) {
         href={game.storeUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="mb-5 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border/70 bg-secondary/60 text-sm font-bold text-foreground transition-colors hover:border-primary/50 hover:text-primary"
+        className="mb-5 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-secondary/60 text-sm font-bold text-foreground transition-colors hover:border-primary/50 hover:text-primary"
       >
         <ExternalLink className="h-4 w-4" aria-hidden />
         Открыть в Steam
@@ -665,7 +701,7 @@ export function GameView({ id }: { id: string }) {
           if (!open) setLiveScore(null); // unsaved selection is discarded
         }}
       >
-        <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-md overflow-y-auto border-border/70 bg-card/95 p-4 grid-cols-[minmax(0,1fr)] sm:p-5">
+        <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-md overflow-y-auto border-border bg-card/95 p-4 grid-cols-[minmax(0,1fr)] sm:p-5">
           <DialogTitle className="text-center text-base font-extrabold">
             Ваша оценка
           </DialogTitle>
@@ -677,21 +713,30 @@ export function GameView({ id }: { id: string }) {
             <SaveIndicator state={user ? saveState : "anon"} />
           </div>
 
-          <RatingWheel score={myRating?.score ?? null} onScoreChange={handleScoreChange} />
+          {/* Выбор оценки 1–10 — отдельными кнопками (референс v3) */}
+          <ScorePicker
+            value={selectedScore}
+            onChange={handleScoreChange}
+            className="mt-1"
+          />
 
-          {/* Explicit save button — the wheel only selects, never saves */}
+          {/* Explicit save button — the picker only selects, never saves */}
           <Button
             type="button"
             onClick={submitScore}
-            disabled={!user || saveState === "saving"}
-            className="mt-1 h-11 w-full gap-2 text-sm font-extrabold"
+            disabled={!user || saveState === "saving" || selectedScore === null}
+            className="mt-2 h-11 w-full gap-2 text-sm font-bold"
           >
             {saveState === "saving" ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
             ) : (
               <Star className="h-4 w-4" aria-hidden />
             )}
-            {saveState === "saving" ? "Сохраняем…" : `Оценить: ${selectedScore}`}
+            {saveState === "saving"
+              ? "Сохраняем…"
+              : selectedScore === null
+                ? "Выберите оценку"
+                : `Оценить: ${selectedScore}`}
           </Button>
 
           {/* Review */}
@@ -701,7 +746,7 @@ export function GameView({ id }: { id: string }) {
                 <button
                   type="button"
                   onClick={() => setReviewOpen(true)}
-                  className="mx-auto flex items-center gap-1.5 rounded-full border border-border/70 bg-secondary/50 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                  className="mx-auto flex items-center gap-1.5 rounded-full border border-border bg-secondary/50 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
                 >
                   <MessageSquareText className="h-3.5 w-3.5" aria-hidden />
                   {myRating?.review ? "Отзыв" : "Добавить отзыв"}
@@ -745,14 +790,16 @@ export function GameView({ id }: { id: string }) {
           )}
 
           {/* Same-score carousel */}
-          <SameScoreCarousel
-            score={selectedScore}
-            ratings={ratings}
-            currentGameId={id}
-            hasUser={!!user}
-            hasRating={!!myRating || liveScore !== null}
-            ratingsLoading={!!user && ratingsQuery.isLoading}
-          />
+          {selectedScore !== null && (
+            <SameScoreCarousel
+              score={selectedScore}
+              ratings={ratings}
+              currentGameId={id}
+              hasUser={!!user}
+              hasRating={!!myRating || liveScore !== null}
+              ratingsLoading={!!user && ratingsQuery.isLoading}
+            />
+          )}
 
           {myRating && (
             <button
@@ -769,7 +816,7 @@ export function GameView({ id }: { id: string }) {
 
       {/* ---- «Не играл» with a rating → confirm removal ---- */}
       <AlertDialog open={confirmNoneOpen} onOpenChange={setConfirmNoneOpen}>
-        <AlertDialogContent className="border-border/70 bg-card/95">
+        <AlertDialogContent className="border-border bg-card/95">
           <AlertDialogHeader>
             <AlertDialogTitle>Отметить «Не играл»?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -793,59 +840,6 @@ export function GameView({ id }: { id: string }) {
 }
 
 /* ---------- subcomponents ---------- */
-
-/** «Не играл» / «Хочу поиграть» / «Играл» — segmented control, default «Не играл». */
-function StatusSegment({
-  current,
-  onPick,
-}: {
-  current: GameStatusValue | null;
-  onPick: (next: "played" | "want" | "none") => void;
-}) {
-  const options: Array<{
-    key: "none" | "want" | "played";
-    label: string;
-    short: string;
-    icon: ComponentType<IconProps>;
-  }> = [
-    { key: "none", label: "Не играл", short: "Не играл", icon: CircleSlash },
-    { key: "want", label: "Хочу поиграть", short: "Хочу", icon: BookmarkPlus },
-    { key: "played", label: "Играл", short: "Играл", icon: Gamepad2 },
-  ];
-  // No DB row (null) = «Не играл» — the default state everywhere.
-  const effective = current ?? "none";
-  return (
-    <div
-      role="radiogroup"
-      aria-label="Статус игры"
-      className="flex rounded-xl border border-border/70 bg-secondary/40 p-1"
-    >
-      {options.map((opt) => {
-        const active = effective === opt.key;
-        const Icon = opt.icon;
-        return (
-          <button
-            key={opt.key}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            onClick={() => onPick(opt.key)}
-            className={cn(
-              "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold transition-all active:scale-[0.97]",
-              active
-                ? "bg-primary/15 text-primary shadow-[0_0_12px_-3px_rgba(166,227,77,0.5)] ring-1 ring-primary/40"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <Icon className="h-3.5 w-3.5" aria-hidden />
-            <span className="sm:hidden">{opt.short}</span>
-            <span className="hidden sm:inline">{opt.label}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 function PlatformChip({ label, icon: Icon }: { label: string; icon: ComponentType<IconProps> }) {
   return (
@@ -995,7 +989,7 @@ function GameDetails({ game }: { game: Game }) {
   return (
     <section aria-label="Детали об игре" className="mb-5">
       <SectionTitle>Детали</SectionTitle>
-      <div className="space-y-4 rounded-2xl border border-border/70 bg-card/70 p-4">
+      <div className="space-y-4 rounded-xl border border-border bg-card p-4">
         {/* Headline stats: price / achievements / Steam reviews */}
         <div className="flex flex-wrap gap-2">
           {game.price ? (
@@ -1144,7 +1138,7 @@ function RequirementsSection({ game }: { game: Game }) {
   return (
     <section aria-label="Системные требования" className="mb-5">
       <SectionTitle>Системные требования</SectionTitle>
-      <div className="rounded-2xl border border-border/70 bg-card/70 p-4">
+      <div className="rounded-xl border border-border bg-card p-4">
         <div className="mb-3 flex items-center gap-1.5">
           <PlatformChip label="Windows" icon={Monitor} />
         </div>
@@ -1201,7 +1195,7 @@ function Screenshots({ game }: { game: Game }) {
         ))}
       </div>
       <Dialog open={!!lightbox} onOpenChange={(open) => !open && setLightbox(null)}>
-        <DialogContent className="max-w-4xl border-border/70 bg-card/95 p-2">
+        <DialogContent className="max-w-4xl border-border bg-card/95 p-2">
           <DialogTitle className="sr-only">Скриншот {game.name}</DialogTitle>
           <DialogDescription className="sr-only">
             Увеличенный скриншот игры {game.name}
@@ -1259,11 +1253,11 @@ function FriendsRatings({
     <section aria-label="Оценки друзей" className="mb-4">
       <SectionTitle>Оценки друзей</SectionTitle>
       {!ready || (user && friendsQuery.isLoading) ? (
-        <div className="rounded-2xl border border-border/70 bg-card/70 p-2">
+        <div className="rounded-xl border border-border bg-card p-2">
           <ListSkeleton count={2} />
         </div>
       ) : !user ? (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border/80 bg-card/40 px-4 py-8 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border/80 bg-card/40 px-4 py-8 text-center">
           <Users className="h-8 w-8 text-muted-foreground/60" aria-hidden />
           <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
             Войдите, чтобы видеть, какую оценку этой игре поставили ваши друзья.
@@ -1286,7 +1280,7 @@ function FriendsRatings({
           className="py-8"
         />
       ) : (
-        <ul className="divide-y divide-border/60 rounded-2xl border border-border/70 bg-card/70 px-2 sm:px-4">
+        <ul className="divide-y divide-border rounded-xl border border-border bg-card px-2 sm:px-4">
           {items.map((f) => {
             const focused =
               !!focusReview && f.username.toLowerCase() === focusReview;
@@ -1402,7 +1396,7 @@ function CommunityRatings({
       <SectionTitle>Оценки сообщества</SectionTitle>
 
       {communityQuery.isLoading ? (
-        <div className="rounded-2xl border border-border/70 bg-card/70 p-2">
+        <div className="rounded-xl border border-border bg-card p-2">
           <ListSkeleton count={3} />
         </div>
       ) : communityQuery.error ? (
@@ -1417,7 +1411,7 @@ function CommunityRatings({
           className="py-8"
         />
       ) : (
-        <div className="rounded-2xl border border-border/70 bg-card/70">
+        <div className="rounded-xl border border-border bg-card">
           {/* Average + distribution */}
           <div className="flex items-center gap-4 border-b border-border/60 p-4">
             <div className="shrink-0 text-center">
@@ -1473,7 +1467,7 @@ function CommunityRatings({
           </div>
 
           {/* Recent ratings */}
-          <ul className="divide-y divide-border/60 px-2 sm:px-4">
+          <ul className="divide-y divide-border px-2 sm:px-4">
             {items.map((item) => {
               const focused =
                 !!focusReview && item.username.toLowerCase() === focusReview;

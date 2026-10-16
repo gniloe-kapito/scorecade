@@ -66,6 +66,84 @@ export interface SearchItem {
   metascore: number | null;
 }
 
+/* ---------- Каталог с настоящей пагинацией (поиск страницы магазина Steam) ----------
+ *  Источник — тот же endpoint, которым пользуется сама страница поиска
+ *  store.steampowered.com/search (параметры start/count/category1=998…).
+ *  Он отдаёт полную выдачу с пагинацией: ~120 000+ игр, тысячи позиций
+ *  в «лидерах продаж» и «скидках». Фильтр category1=998 («Игры»)
+ *  отсекает DLC, демо, саундтреки, программы и железо на стороне Steam.
+ *  Это storefront-механизм без официального контракта — парсер написан
+ *  защитно: при изменении вёрстки маршрут вернёт 503, а не мусор. */
+
+export type BrowseSection =
+  | "all" // вся выдача (порядок Steam по умолчанию ≈ популярность)
+  | "topsellers" // filter=topsellers — по продажам
+  | "new" // sort_by=Released_DESC — новинки
+  | "coming" // filter=comingsoon — скоро выйдут
+  | "specials"; // specials=1 — скидки
+
+export type BrowseSort =
+  | "relevance" // порядок Steam по умолчанию
+  | "released" // по дате выхода (сначала новые)
+  | "reviews" // по оценкам обзоров Steam
+  | "priceasc" // цена: по возрастанию
+  | "pricedesc" // цена: по убыванию
+  | "name"; // по названию
+
+export type BrowseOs = "win" | "mac" | "linux";
+
+/** Карточка каталога. Поля присутствуют только тогда, когда источник
+ *  их реально отдал (у «скоро выйдут» цен обычно нет — price = null). */
+export interface BrowseItem {
+  id: string; // "steam:730" — совместимо со всеми маршрутами
+  appId: number;
+  name: string;
+  cover: string; // вертикальная обложка (CDN-шаблон; фолбэк — на клиенте)
+  header: string; // капсула из ответа поиска
+  released: string; // локализованная дата выхода («16 окт. 2026 г.»)
+  rank: number | null; // позиция (только «Лидеры продаж», сквозная)
+  price: string | null; // "$35.99" | "Бесплатно" | null (не объявлена)
+  priceInitial: string | null; // "$39.99" — цена до скидки
+  discountPercent: number | null;
+  isFree: boolean;
+  platforms: { windows: boolean; mac: boolean; linux: boolean };
+  /** Отзыв Steam: «Очень положительные» и доля положительных обзоров. */
+  reviewSummary: string | null;
+  reviewPercent: number | null;
+  storeUrl: string;
+  /** Оценки пользователей Scorecade (null — ещё никто не оценил). */
+  scorecade?: { average: number; count: number } | null;
+}
+
+export interface BrowseResponse {
+  section: BrowseSection | "search"; // "search" — режим поиска по названию
+  q: string | null; // поисковый запрос (режим поиска)
+  sort: BrowseSort; // применённая сортировка
+  os: BrowseOs | null; // применённый фильтр платформы
+  hideFree: boolean;
+  page: number;
+  pageSize: number;
+  total: number; // всего совпадений по данным Steam
+  items: BrowseItem[];
+  hasMore: boolean; // есть ли следующая страница
+  updatedAt: string; // ISO — время получения данных от Steam
+  source: "steam_storefront";
+}
+
+/* ---------- Онлайн игроков (официальный Steam) ----------
+ *  Чарт «Сейчас играют» — store.steampowered.com/charts/mostplayed;
+ *  точечный онлайн одной игры — Web API Valve
+ *  ISteamUserStats/GetNumberOfCurrentPlayers (без ключа). */
+
+export interface MostPlayedItem {
+  id: string; // "steam:730"
+  appId: number;
+  name: string;
+  cover: string; // горизонтальная капсула (header.jpg)
+  players: number; // играют прямо сейчас
+  peak: number; // дневной пик
+}
+
 export interface RatingRow {
   gameId: string;
   gameName: string;
@@ -161,14 +239,47 @@ export interface UserSearchItem {
   isMe: boolean;
 }
 
-/** Game status: 'played' (Играл) or 'want' (Хочу поиграть).
- *  Absence of a row means "Не играл" — the default state. */
-export type GameStatusValue = "played" | "want";
+/** Отметка игрока на игре (ручная, без фиктивных часов/процентов):
+ *  playing — «Играю», beaten — «Пройдена», dropped — «Брошена»,
+ *  played — «Играл(а)» (унаследованный статус; оценка тоже ставит его),
+ *  want — «Хочу сыграть». Отсутствие строки = игра не отмечена. */
+export type GameStatusValue = "playing" | "beaten" | "dropped" | "played" | "want";
 
 export interface StatusRow {
   gameId: string;
   status: GameStatusValue;
   updatedAt: string; // ISO date string
+}
+
+/** Человекочитаемые подписи статусов (единый источник для модалки,
+ *  страницы игры, библиотеки и профиля). */
+export const STATUS_LABELS: Record<GameStatusValue, string> = {
+  playing: "Играю",
+  beaten: "Пройдена",
+  dropped: "Брошена",
+  played: "Играл(а)",
+  want: "Хочу сыграть",
+};
+
+/** Порядок статусов в выборе (модалка игры / страница игры). */
+export const STATUS_ORDER: readonly GameStatusValue[] = [
+  "playing",
+  "beaten",
+  "dropped",
+  "played",
+  "want",
+];
+
+/** Строка библиотеки: игра со всеми моими отметками (оценка, отзыв,
+ *  статус). Собирается на сервере из Rating ∪ GameStatus. */
+export interface LibraryItem {
+  gameId: string;
+  gameName: string;
+  gameCover: string | null;
+  score: number | null; // null — не оценена
+  review: string | null;
+  status: GameStatusValue | null; // null — только оценка (legacy) или без отметки
+  updatedAt: string; // ISO: последнее изменение оценки или статуса
 }
 
 /** A game the user marked as «Хочу поиграть». */

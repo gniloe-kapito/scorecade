@@ -49,9 +49,31 @@ export function ListRowSkeleton() {
 
 export function ListSkeleton({ count = 5 }: { count?: number }) {
   return (
-    <div className="divide-y divide-border/60">
+    <div className="divide-y divide-border">
       {Array.from({ length: count }).map((_, i) => (
         <ListRowSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
+export function CapsuleCardSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border">
+      <Skeleton className={`aspect-[460/215] w-full rounded-none ${shimmer}`} />
+      <div className="space-y-2 p-2.5">
+        <Skeleton className={`h-3.5 w-4/5 ${shimmer}`} />
+        <Skeleton className={`h-2.5 w-1/2 ${shimmer}`} />
+      </div>
+    </div>
+  );
+}
+
+export function CapsuleGridSkeleton({ count = 12 }: { count?: number }) {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+      {Array.from({ length: count }).map((_, i) => (
+        <CapsuleCardSkeleton key={i} />
       ))}
     </div>
   );
@@ -71,8 +93,8 @@ export function GamePageSkeleton() {
           </div>
         </div>
       </div>
-      <Skeleton className="h-28 w-full rounded-2xl" />
-      <Skeleton className="mt-4 h-24 w-full rounded-2xl" />
+      <Skeleton className="h-28 w-full rounded-xl" />
+      <Skeleton className="mt-4 h-24 w-full rounded-xl" />
     </div>
   );
 }

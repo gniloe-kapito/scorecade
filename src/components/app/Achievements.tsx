@@ -135,7 +135,7 @@ export function Achievements({ user }: { user: ProfileUser }) {
   return (
     <section
       aria-label="Достижения профиля"
-      className="mt-4 rounded-2xl border border-border/70 bg-card/70 p-4"
+      className="mt-4 rounded-xl border border-border bg-card p-4"
     >
       <div className="mb-3 flex items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-sm font-extrabold uppercase tracking-wider">
@@ -187,7 +187,7 @@ export function Achievements({ user }: { user: ProfileUser }) {
                   className={cn(
                     "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border",
                     unlocked
-                      ? "border-primary/40 bg-primary/15 text-primary shadow-[0_0_12px_-4px_var(--primary)]"
+                      ? "border-primary/50 bg-[var(--primary-soft)] text-primary"
                       : "border-border/60 bg-secondary/40 text-muted-foreground/40",
                   )}
                 >

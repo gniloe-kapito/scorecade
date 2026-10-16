@@ -71,7 +71,7 @@ export function NotificationsBell() {
               ? `Уведомления: ${newCount} новых`
               : "Уведомления: лайки, комментарии и ответы, оценки друзей, подписчики"
           }
-          className="relative flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-card text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+          className="relative flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
         >
           <Bell className="h-4 w-4" aria-hidden />
           {newCount > 0 && (

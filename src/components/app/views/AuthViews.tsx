@@ -65,7 +65,7 @@ export function LoginView({ from }: { from: string | null }) {
           <Wordmark />
         </a>
       </div>
-      <div className="rounded-2xl border border-border/70 bg-card/70 p-6 shadow-xl">
+      <div className="rounded-xl border border-border bg-card p-6 shadow-xl">
         <h1 className="text-xl font-extrabold">Вход</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Рады видеть вас снова в {SITE_NAME}
@@ -176,7 +176,7 @@ export function RegisterView({ from }: { from: string | null }) {
           <Wordmark />
         </a>
       </div>
-      <div className="rounded-2xl border border-border/70 bg-card/70 p-6 shadow-xl">
+      <div className="rounded-xl border border-border bg-card p-6 shadow-xl">
         <h1 className="text-xl font-extrabold">Регистрация</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Аккаунт нужен, чтобы сохранять оценки и подписываться на друзей

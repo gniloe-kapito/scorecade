@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/** Consistent section heading with a small neon accent bar. */
+/** Consistent section heading with a small accent bar. */
 export function SectionTitle({
   children,
   className,
@@ -17,7 +17,7 @@ export function SectionTitle({
     >
       <span
         aria-hidden
-        className="h-4 w-1 shrink-0 rounded-full bg-primary shadow-[0_0_10px_var(--primary)]"
+        className="h-4 w-1 shrink-0 rounded-full bg-primary"
       />
       {children}
     </h2>

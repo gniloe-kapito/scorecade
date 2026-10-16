@@ -1,24 +1,30 @@
 "use client";
 
-import { Component, useEffect, type ReactNode } from "react";
+import { Component, useEffect, useRef, type ReactNode } from "react";
 import { Toaster } from "sonner";
 import { WifiOff } from "lucide-react";
-import { useHashRoute } from "@/lib/router";
+import { useHashRoute, isWideRoute } from "@/lib/router";
 import { useAuth } from "@/lib/auth-context";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { Header } from "./Header";
 import { BottomNav } from "./BottomNav";
 import { Footer } from "./Footer";
 import { BackToTop } from "./BackToTop";
+import { GameModal } from "./GameModal";
+import { closeGameModal } from "./game-modal-store";
 import { HomeView } from "./views/HomeView";
 import { GameView } from "./views/GameView";
+import { CatalogView } from "./views/CatalogView";
+import { LibraryView } from "./views/LibraryView";
 import { ProfileView } from "./views/ProfileView";
 import { FeedView } from "./views/FeedView";
 import { LoginView, RegisterView } from "./views/AuthViews";
 import { UserListView } from "./views/UserListView";
 import { NotificationsView } from "./views/NotificationsView";
+import { SettingsView } from "./views/SettingsView";
 import { NotFoundView } from "./views/NotFoundView";
 
 class RouteErrorBoundary extends Component<
@@ -48,6 +54,11 @@ class RouteErrorBoundary extends Component<
     }
     return this.props.children;
   }
+}
+
+/** #/library — моя библиотека: игры с оценками, отметками и отзывами. */
+function MyLibraryView() {
+  return <LibraryView />;
 }
 
 /** #/me — my profile or a login prompt. */
@@ -100,8 +111,50 @@ export function App() {
   const route = useHashRoute();
   const online = useOnlineStatus();
 
-  // Scroll to top on navigation
+  // Позиция прокрутки каталога/библиотеки: если ушли на страницу игры и
+  // вернулись «назад» — оказываемся там же, где были, а не в самом верху.
+  // Флаг ставится только при уходе со списка на /game/*, поэтому обычный
+  // переход из меню по-прежнему открывает список с начала.
+  const listScroll = useRef<{ path: string | null; top: number }>({
+    path: null,
+    top: 0,
+  });
+  const currentPathRef = useRef(route.path);
+
   useEffect(() => {
+    const prev = currentPathRef.current;
+    if (prev === route.path) {
+      closeGameModal();
+      return;
+    }
+    currentPathRef.current = route.path;
+    closeGameModal();
+
+    const isList = (p: string) => p === "/games" || p === "/library";
+    // Уход со списка на страницу игры — запомнить, куда листал пользователь.
+    if (isList(prev) && route.path.startsWith("/game/")) {
+      listScroll.current = { path: prev, top: window.scrollY };
+      window.scrollTo({ top: 0 });
+      return;
+    }
+    // Возврат со страницы игры на список — восстановить позицию.
+    if (
+      isList(route.path) &&
+      prev.startsWith("/game/") &&
+      listScroll.current.path === route.path
+    ) {
+      const top = listScroll.current.top;
+      listScroll.current = { path: null, top: 0 };
+      // Каталог подтягивается из кэша react-query мгновенно, но кадр на
+      // рендер всё равно нужен — иначе прокрутка происходит до того, как
+      // восстановится высота страницы.
+      requestAnimationFrame(() => {
+        window.scrollTo({ top });
+        window.setTimeout(() => window.scrollTo({ top }), 80);
+      });
+      return;
+    }
+    listScroll.current = { path: null, top: 0 };
     window.scrollTo({ top: 0 });
   }, [route.path]);
 
@@ -148,6 +201,9 @@ export function App() {
   } else if (seg[0] === "game" && seg[1]) {
     isGame = true;
     view = <GameView id={seg[1]} />;
+  } else if (seg[0] === "games") {
+    // Каталог (#/games) — широкая страница, любые вложенные пути игнорируются.
+    view = <CatalogView />;
   } else if (seg[0] === "u" && seg[1]) {
     if (seg[2] === "followers" || seg[2] === "following") {
       view = <UserListView username={seg[1]} kind={seg[2]} />;
@@ -156,10 +212,16 @@ export function App() {
     }
   } else if (seg[0] === "feed") {
     view = <FeedView />;
+  } else if (seg[0] === "library") {
+    // Библиотека (#/library) — мои игры, оценки и отметки.
+    view = <MyLibraryView />;
   } else if (seg[0] === "notifications") {
     view = <NotificationsView />;
   } else if (seg[0] === "me") {
     view = <MeView />;
+  } else if (seg[0] === "settings") {
+    // Настройки (#/settings): тема, никнейм, пароль.
+    view = <SettingsView />;
   } else if (seg[0] === "login") {
     view = <LoginView from={route.query.get("from")} />;
   } else if (seg[0] === "register") {
@@ -169,7 +231,15 @@ export function App() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col">
+      {/* Живой фон анимированных тем (аврора/угли/сакура/океан/неон/космос):
+          три независимых слоя с собственными анимациями — под контентом,
+          базовый цвет при этом живёт на <html> (см. globals.css). */}
+      <div className="theme-backdrop" aria-hidden>
+        <span className="bd-layer bd-1" />
+        <span className="bd-layer bd-2" />
+        <span className="bd-layer bd-3" />
+      </div>
       {!online && (
         <div
           role="status"
@@ -182,7 +252,12 @@ export function App() {
       )}
       {!isGame && <Header />}
       <div className="flex-1">
-        <main className="mx-auto w-full max-w-[900px] px-4 pb-12">
+        <main
+          className={cn(
+            "mx-auto w-full px-4 pb-12",
+            isWideRoute(route.path) ? "max-w-[1280px]" : "max-w-[900px]",
+          )}
+        >
           <div key={route.path} className="animate-view-in">
             <RouteErrorBoundary>{view}</RouteErrorBoundary>
           </div>
@@ -191,6 +266,7 @@ export function App() {
       <Footer />
       <BottomNav />
       <BackToTop />
+      <GameModal />
       <Toaster
         position="top-center"
         toastOptions={{

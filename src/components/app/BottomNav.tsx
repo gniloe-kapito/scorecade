@@ -1,12 +1,24 @@
 "use client";
 
-import { Activity, Search, UserRound } from "lucide-react";
+import { Gamepad2, Home, Library, UserRound } from "lucide-react";
 import { useHashRoute } from "@/lib/router";
 import { cn } from "@/lib/utils";
 
+/** Мобильная нижняя навигация — те же четыре раздела, что в шапке. */
 const ITEMS = [
-  { href: "#/", label: "Поиск", icon: Search, active: (p: string) => p === "/" },
-  { href: "#/feed", label: "Лента", icon: Activity, active: (p: string) => p.startsWith("/feed") },
+  { href: "#/", label: "Главная", icon: Home, active: (p: string) => p === "/" },
+  {
+    href: "#/games",
+    label: "Каталог",
+    icon: Gamepad2,
+    active: (p: string) => p.startsWith("/games"),
+  },
+  {
+    href: "#/library",
+    label: "Библиотека",
+    icon: Library,
+    active: (p: string) => p.startsWith("/library"),
+  },
   {
     href: "#/me",
     label: "Профиль",
@@ -20,9 +32,9 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Нижняя навигация"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-card/95 backdrop-blur-md md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur-md md:hidden"
     >
-      <div className="mx-auto flex w-full max-w-[900px]">
+      <div className="mx-auto flex w-full">
         {ITEMS.map((item) => {
           const active = item.active(route.path);
           const Icon = item.icon;

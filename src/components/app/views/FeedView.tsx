@@ -10,7 +10,6 @@ import { timeAgo, formatDateTime } from "@/lib/format";
 import { SITE_NAME } from "@/lib/config";
 import { GameCover } from "@/components/app/GameCover";
 import { ScoreBadge } from "@/components/app/ScoreBadge";
-import { LikeButton } from "@/components/app/LikeButton";
 import { ReviewActions } from "@/components/app/ReviewActions";
 import { UserAvatar } from "@/components/app/UserAvatar";
 import { UserLink } from "@/components/app/UserLink";
@@ -21,11 +20,59 @@ import type { FeedItem } from "@/lib/types";
 
 export function FeedView() {
   const { user, ready } = useAuth();
-  const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     document.title = `Лента — ${SITE_NAME}`;
   }, []);
+
+  if (!ready) {
+    return (
+      <div className="py-6">
+        <ListSkeleton count={5} />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="py-8">
+        <EmptyState
+          icon={LogIn}
+          title="Лента оценок друзей"
+          hint="Войдите в аккаунт — и здесь появятся последние оценки тех, на кого вы подписаны."
+          action={
+            <Button asChild>
+              <a href={loginRedirectUrl()}>
+                <LogIn className="h-4 w-4" aria-hidden /> Войти
+              </a>
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-6">
+      <header className="mb-5">
+        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+          <Activity className="h-6 w-6 text-primary" aria-hidden />
+          Лента
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Последние оценки тех, на кого вы подписаны
+        </p>
+      </header>
+      <FriendsFeed />
+    </div>
+  );
+}
+
+/** Лента оценок друзей: бесконечная прокрутка, без заголовка страницы.
+ *  Используется и отдельной страницей #/feed, и вкладкой «Друзья» в профиле. */
+export function FriendsFeed() {
+  const { user } = useAuth();
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const feedQuery = useInfiniteQuery({
     queryKey: ["feed"],
@@ -62,107 +109,76 @@ export function FeedView() {
     feedQuery.fetchNextPage,
   ]);
 
-  if (!ready) {
+  const items = feedQuery.data?.pages.flatMap((p) => p.items) ?? [];
+  const hasNextPage = feedQuery.hasNextPage;
+
+  if (feedQuery.isLoading) {
     return (
-      <div className="py-6">
+      <div className="rounded-lg border border-border bg-card px-4">
         <ListSkeleton count={5} />
       </div>
     );
   }
-
-  if (!user) {
+  if (feedQuery.error) {
     return (
-      <div className="py-8">
-        <EmptyState
-          icon={LogIn}
-          title="Лента оценок друзей"
-          hint="Войдите в аккаунт — и здесь появятся последние оценки тех, на кого вы подписаны."
-          action={
-            <Button asChild>
-              <a href={loginRedirectUrl()}>
-                <LogIn className="h-4 w-4" aria-hidden /> Войти
-              </a>
-            </Button>
-          }
-        />
-      </div>
+      <EmptyState
+        icon={Newspaper}
+        title="Не удалось загрузить ленту"
+        hint={feedQuery.error.message}
+        action={
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => feedQuery.refetch()}
+          >
+            Повторить
+          </Button>
+        }
+      />
+    );
+  }
+  if (items.length === 0) {
+    return (
+      <EmptyState
+        icon={Users}
+        title="Пока пусто"
+        hint="Подпишитесь на друзей — их оценки появятся здесь. Найти людей можно поиском на главной или на страницах игр в блоке «Оценки друзей»."
+        action={
+          <Button asChild size="sm">
+            <a href="#/">На главную</a>
+          </Button>
+        }
+      />
     );
   }
 
-  const items = feedQuery.data?.pages.flatMap((p) => p.items) ?? [];
-  const hasNextPage = feedQuery.hasNextPage;
-
   return (
-    <div className="py-6">
-      <header className="mb-5">
-        <h1 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight">
-          <Activity className="h-6 w-6 text-primary" aria-hidden />
-          Лента
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Последние оценки тех, на кого вы подписаны
-        </p>
-      </header>
+    <>
+      <ul className="space-y-3">
+        {items.map((item) => (
+          <FeedCard key={`${item.username}-${item.gameId}`} item={item} />
+        ))}
+      </ul>
 
-      {feedQuery.isLoading ? (
-        <div className="rounded-2xl border border-border/70 bg-card/70 px-4">
-          <ListSkeleton count={5} />
+      {/* infinite scroll sentinel */}
+      <div ref={sentinelRef} aria-hidden className="h-1" />
+      {feedQuery.isFetchingNextPage && (
+        <div className="mt-3 rounded-lg border border-border bg-card px-4">
+          <ListSkeleton count={2} />
         </div>
-      ) : feedQuery.error ? (
-        <EmptyState
-          icon={Newspaper}
-          title="Не удалось загрузить ленту"
-          hint={feedQuery.error.message}
-          action={
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => feedQuery.refetch()}
-            >
-              Повторить
-            </Button>
-          }
-        />
-      ) : items.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title="Пока пусто"
-          hint="Подпишитесь на друзей — их оценки появятся здесь. Найти людей можно на страницах игр в блоке «Оценки друзей»."
-          action={
-            <Button asChild size="sm">
-              <a href="#/">Найти игры</a>
-            </Button>
-          }
-        />
-      ) : (
-        <>
-          <ul className="space-y-3">
-            {items.map((item) => (
-              <FeedCard key={`${item.username}-${item.gameId}`} item={item} />
-            ))}
-          </ul>
-
-          {/* infinite scroll sentinel */}
-          <div ref={sentinelRef} aria-hidden className="h-1" />
-          {feedQuery.isFetchingNextPage && (
-            <div className="mt-3 rounded-2xl border border-border/70 bg-card/70 px-4">
-              <ListSkeleton count={2} />
-            </div>
-          )}
-          {!hasNextPage && (
-            <p className="mt-5 text-center text-xs text-muted-foreground">
-              Вы всё посмотрели
-            </p>
-          )}
-        </>
       )}
-    </div>
+      {!hasNextPage && (
+        <p className="mt-5 text-center text-xs text-muted-foreground">
+          Вы всё посмотрели
+        </p>
+      )}
+    </>
   );
 }
 
 function FeedCard({ item }: { item: FeedItem }) {
   return (
-    <li className="group rounded-2xl border border-border/70 bg-card/70 p-3.5 transition-all hover:border-primary/25 hover:shadow-[0_10px_28px_-16px_rgba(166,227,77,0.22)]">
+    <li className="group rounded-lg border border-border bg-card p-3.5 transition-colors hover:border-[var(--line-strong)]">
       <div className="flex items-stretch gap-3">
         <a href={`#/u/${item.username}`} className="shrink-0 self-start">
           <UserAvatar username={item.username} src={item.avatarUrl} size="md" />
@@ -186,7 +202,7 @@ function FeedCard({ item }: { item: FeedItem }) {
             {timeAgo(item.updatedAt)}
           </p>
           {item.review && (
-            <div className="mt-2 rounded-xl border-l-2 border-primary/40 bg-secondary/40 px-3 py-2">
+            <div className="mt-2 rounded-md border-l-2 border-primary/40 bg-secondary/40 px-3 py-2">
               <p className="break-words text-sm leading-relaxed text-foreground/80">
                 {item.review}
               </p>
@@ -210,7 +226,7 @@ function FeedCard({ item }: { item: FeedItem }) {
             cover={item.gameCover}
             gameId={item.gameId}
             name={item.gameName}
-            className="h-[72px] w-12 rounded-lg border border-border/60 shadow-sm transition-transform duration-200 group-hover:scale-[1.06]"
+            className="h-[72px] w-12 rounded-md border border-border transition-transform duration-200 group-hover:scale-[1.04]"
           />
         </a>
       </div>

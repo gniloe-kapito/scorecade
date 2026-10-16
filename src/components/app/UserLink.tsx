@@ -193,7 +193,7 @@ export function UserLink({
           <span
             aria-label={`Карточка профиля ${username}`}
             className={cn(
-              "animate-card-in fixed z-50 block w-72 rounded-2xl border border-border/80 bg-card/95 p-4 shadow-[0_18px_48px_-16px_rgba(0,0,0,0.45)] backdrop-blur-md",
+              "animate-card-in fixed z-50 block w-72 rounded-xl border border-border/80 bg-card/95 p-4 shadow-[0_18px_48px_-16px_rgba(0,0,0,0.45)] backdrop-blur-md",
               "dark:shadow-[0_18px_48px_-16px_rgba(0,0,0,0.7)]",
             )}
             style={{
@@ -343,7 +343,7 @@ function MiniCard({ user }: { user: UserMini }) {
         )}
         <a
           href={`#/u/${user.username}`}
-          className="flex items-center gap-1 rounded-lg border border-border/70 bg-secondary/40 px-2.5 py-1.5 text-xs font-bold text-foreground/90 transition-colors hover:border-primary/40 hover:text-primary"
+          className="flex items-center gap-1 rounded-lg border border-border bg-secondary/40 px-2.5 py-1.5 text-xs font-bold text-foreground/90 transition-colors hover:border-primary/40 hover:text-primary"
         >
           Профиль
           <ChevronRight className="h-3.5 w-3.5" aria-hidden />
