@@ -6,7 +6,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Стек шрифта — 1:1 из референса (scorecade_v3): локальный Inter, затем
+     системные. Веб-шрифт не подключаем, чтобы рендер совпадал с примером
+     на любой машине. */
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -42,53 +45,501 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* Scorecade — arcade-lime theme. Одна фиксированная тёмная тема
-   (неоновый лайм на зелёно-чёрном фоне), вид не зависит от настроек
-   устройства и не переключается. Класс .dark на <html> оставлен для
-   утилит dark: (см. @custom-variant выше) и никогда не снимается. */
+/* Scorecade — спокойная система тем (референс v3 + анимированные).
+   Базовые: графит (тёмная, по умолчанию), бумага (светлая), слива
+   (тёмная фиолетовая), мох (тёмная зеленоватая). Плюс живые:
+   аврора (тёмная, плывущее северное сияние), угли (тёмная тёплая,
+   дышающие угли), сакура (светлая, нежные розовые волны).
+   Активная тема — data-theme на <html>; класс .dark синхронизируется
+   бутстрап-скриптом. Компоненты используют только семантические
+   переменные — тема меняет ровно один блок токенов. */
 
-:root {
+:root,
+[data-theme="graphite"] {
   color-scheme: dark;
-  --radius: 0.75rem;
-  --background: oklch(0.155 0.015 160);
-  --foreground: oklch(0.93 0.012 140);
-  --card: oklch(0.195 0.017 158);
-  --card-foreground: oklch(0.93 0.012 140);
-  --popover: oklch(0.19 0.017 158);
-  --popover-foreground: oklch(0.93 0.012 140);
-  --primary: oklch(0.84 0.19 131);
-  --primary-foreground: oklch(0.19 0.05 155);
-  --secondary: oklch(0.26 0.02 156);
-  --secondary-foreground: oklch(0.93 0.012 140);
-  --muted: oklch(0.25 0.018 156);
-  --muted-foreground: oklch(0.68 0.016 150);
-  --accent: oklch(0.28 0.022 154);
-  --accent-foreground: oklch(0.93 0.012 140);
-  --destructive: oklch(0.64 0.19 25);
-  --destructive-foreground: oklch(0.99 0.005 140);
-  --border: oklch(1 0 0 / 9%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.84 0.19 131);
-  --chart-1: oklch(0.84 0.19 131);
-  --chart-2: oklch(0.75 0.16 150);
-  --chart-3: oklch(0.7 0.14 90);
-  --chart-4: oklch(0.78 0.15 70);
-  --chart-5: oklch(0.64 0.19 25);
-  --sidebar: oklch(0.195 0.017 158);
-  --sidebar-foreground: oklch(0.93 0.012 140);
-  --sidebar-primary: oklch(0.84 0.19 131);
-  --sidebar-primary-foreground: oklch(0.19 0.05 155);
-  --sidebar-accent: oklch(0.28 0.022 154);
-  --sidebar-accent-foreground: oklch(0.93 0.012 140);
-  --sidebar-border: oklch(1 0 0 / 9%);
-  --sidebar-ring: oklch(0.84 0.19 131);
-  /* theme-detail helpers */
-  --scrollbar-thumb: oklch(0.4 0.03 152 / 55%);
-  --scrollbar-thumb-hover: oklch(0.5 0.04 150 / 65%);
-  --shimmer-highlight: oklch(1 0 0 / 5%);
-  --heading-mid: oklch(0.93 0.16 125);
-  --hero-glow-color: oklch(0.84 0.19 131 / 8%);
-  --text-glow-color: oklch(0.84 0.19 131 / 45%);
+  --radius: 0.625rem;
+  /* surfaces */
+  --background: #191b1b;
+  --foreground: #efeee8;
+  --card: #222524;
+  --card-foreground: #efeee8;
+  --popover: #262927;
+  --popover-foreground: #efeee8;
+  --secondary: #303330;
+  --secondary-foreground: #efeee8;
+  --muted: #282b29;
+  --muted-foreground: #a09f96;
+  --accent: #303330;
+  --accent-foreground: #efeee8;
+  /* brand */
+  --primary: #c0a17a;
+  --primary-foreground: #17140f;
+  --destructive: #c9857a;
+  --destructive-foreground: #22110d;
+  --border: #3a3d39;
+  --input: #4a4d47;
+  --ring: #c0a17a;
+  --chart-1: #c0a17a;
+  --chart-2: #9ead96;
+  --chart-3: #8f9c9a;
+  --chart-4: #b7a0c4;
+  --chart-5: #d5a09a;
+  --sidebar: #222524;
+  --sidebar-foreground: #efeee8;
+  --sidebar-primary: #c0a17a;
+  --sidebar-primary-foreground: #17140f;
+  --sidebar-accent: #303330;
+  --sidebar-accent-foreground: #efeee8;
+  --sidebar-border: #3a3d39;
+  --sidebar-ring: #c0a17a;
+  /* helpers */
+  --text-soft: #d2d0c7;
+  --line-strong: #4a4d47;
+  --primary-soft: #383025;
+  --primary-hover: #ddbd94;
+  --good: #9ead96;
+  --bad: #d5a09a;
+  --scrollbar-thumb: #3f443fd9;
+  --scrollbar-thumb-hover: #4d534bd9;
+  --shimmer-highlight: rgba(255, 255, 255, 0.045);
+  --heading-mid: #ddbd94;
+  /* Тихие тени вместо неона: имя сохранено, используется .lift и модалкой. */
+  --glow-card: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="soft"] {
+  color-scheme: light;
+  --background: #e3e0d8;
+  --foreground: #2c2d29;
+  --card: #eeece5;
+  --card-foreground: #2c2d29;
+  --popover: #f2f0ea;
+  --popover-foreground: #2c2d29;
+  --secondary: #ddd9d0;
+  --secondary-foreground: #2c2d29;
+  --muted: #e7e4dc;
+  --muted-foreground: #77786f;
+  --accent: #ddd9d0;
+  --accent-foreground: #2c2d29;
+  --primary: #8b6844;
+  --primary-foreground: #fffaf1;
+  --destructive: #a75d52;
+  --destructive-foreground: #fff6f2;
+  --border: #cfccc2;
+  --input: #beb9ad;
+  --ring: #8b6844;
+  --chart-1: #8b6844;
+  --chart-2: #65795e;
+  --chart-3: #7d8a86;
+  --chart-4: #927c9e;
+  --chart-5: #98615a;
+  --sidebar: #eeece5;
+  --sidebar-foreground: #2c2d29;
+  --sidebar-primary: #8b6844;
+  --sidebar-primary-foreground: #fffaf1;
+  --sidebar-accent: #ddd9d0;
+  --sidebar-accent-foreground: #2c2d29;
+  --sidebar-border: #cfccc2;
+  --sidebar-ring: #8b6844;
+  --text-soft: #4c4d46;
+  --line-strong: #beb9ad;
+  --primary-soft: #e5d8c5;
+  --primary-hover: #745331;
+  --good: #65795e;
+  --bad: #98615a;
+  --scrollbar-thumb: #b3afa3d9;
+  --scrollbar-thumb-hover: #a09c8fd9;
+  --shimmer-highlight: rgba(60, 55, 40, 0.05);
+  --heading-mid: #745331;
+  --glow-card: 0 7px 22px rgba(40, 35, 25, 0.06);
+}
+
+[data-theme="plum"] {
+  color-scheme: dark;
+  --background: #1b191d;
+  --foreground: #f0ecf1;
+  --card: #27232a;
+  --card-foreground: #f0ecf1;
+  --popover: #2b2730;
+  --popover-foreground: #f0ecf1;
+  --secondary: #39323d;
+  --secondary-foreground: #f0ecf1;
+  --muted: #302b33;
+  --muted-foreground: #a69ba9;
+  --accent: #39323d;
+  --accent-foreground: #f0ecf1;
+  --primary: #b7a0c4;
+  --primary-foreground: #19131d;
+  --destructive: #c9857a;
+  --destructive-foreground: #22110d;
+  --border: #443b49;
+  --input: #5a4e60;
+  --ring: #b7a0c4;
+  --chart-1: #b7a0c4;
+  --chart-2: #a5b49a;
+  --chart-3: #93919c;
+  --chart-4: #c0a17a;
+  --chart-5: #d1a09f;
+  --sidebar: #27232a;
+  --sidebar-foreground: #f0ecf1;
+  --sidebar-primary: #b7a0c4;
+  --sidebar-primary-foreground: #19131d;
+  --sidebar-accent: #39323d;
+  --sidebar-accent-foreground: #f0ecf1;
+  --sidebar-border: #443b49;
+  --sidebar-ring: #b7a0c4;
+  --text-soft: #d2c9d7;
+  --line-strong: #5a4e60;
+  --primary-soft: #3b3041;
+  --primary-hover: #c8b4d2;
+  --good: #a5b49a;
+  --bad: #d1a09f;
+  --scrollbar-thumb: #4c4152d9;
+  --scrollbar-thumb-hover: #5b4e62d9;
+  --shimmer-highlight: rgba(255, 255, 255, 0.045);
+  --heading-mid: #c8b4d2;
+}
+
+[data-theme="moss"] {
+  color-scheme: dark;
+  --background: #171b18;
+  --foreground: #edf0e9;
+  --card: #242b26;
+  --card-foreground: #edf0e9;
+  --popover: #28302a;
+  --popover-foreground: #edf0e9;
+  --secondary: #354036;
+  --secondary-foreground: #edf0e9;
+  --muted: #2b342e;
+  --muted-foreground: #9ba798;
+  --accent: #354036;
+  --accent-foreground: #edf0e9;
+  --primary: #a7b99a;
+  --primary-foreground: #121810;
+  --destructive: #c9857a;
+  --destructive-foreground: #22110d;
+  --border: #3a463b;
+  --input: #526052;
+  --ring: #a7b99a;
+  --chart-1: #a7b99a;
+  --chart-2: #c0a17a;
+  --chart-3: #8f9c8a;
+  --chart-4: #9aa7b0;
+  --chart-5: #d6aaa0;
+  --sidebar: #242b26;
+  --sidebar-foreground: #edf0e9;
+  --sidebar-primary: #a7b99a;
+  --sidebar-primary-foreground: #121810;
+  --sidebar-accent: #354036;
+  --sidebar-accent-foreground: #edf0e9;
+  --sidebar-border: #3a463b;
+  --sidebar-ring: #a7b99a;
+  --text-soft: #cbd4c7;
+  --line-strong: #526052;
+  --primary-soft: #303e31;
+  --primary-hover: #bacbad;
+  --good: #adc7a0;
+  --bad: #d6aaa0;
+  --scrollbar-thumb: #434f45d9;
+  --scrollbar-thumb-hover: #525f53d9;
+  --shimmer-highlight: rgba(255, 255, 255, 0.045);
+  --heading-mid: #bacbad;
+}
+
+/* ---------- Живые темы (анимированный фон — слой .theme-backdrop) ---------- */
+
+/* Аврора: тёмная с плывущим северным сиянием (мягкие пятна, transform-only). */
+[data-theme="aurora"] {
+  color-scheme: dark;
+  --radius: 0.625rem;
+  --background: #131a1c;
+  --foreground: #e9f1ee;
+  --card: #1a2427;
+  --card-foreground: #e9f1ee;
+  --popover: #1e292c;
+  --popover-foreground: #e9f1ee;
+  --secondary: #28363a;
+  --secondary-foreground: #e9f1ee;
+  --muted: #222d31;
+  --muted-foreground: #93a8a2;
+  --accent: #28363a;
+  --accent-foreground: #e9f1ee;
+  --primary: #82c7b0;
+  --primary-foreground: #0e1a15;
+  --destructive: #c9857a;
+  --destructive-foreground: #22110d;
+  --border: #31434a;
+  --input: #445961;
+  --ring: #82c7b0;
+  --chart-1: #82c7b0;
+  --chart-2: #7fa8c9;
+  --chart-3: #8fa8a0;
+  --chart-4: #b7a0c4;
+  --chart-5: #d5a09a;
+  --sidebar: #1a2427;
+  --sidebar-foreground: #e9f1ee;
+  --sidebar-primary: #82c7b0;
+  --sidebar-primary-foreground: #0e1a15;
+  --sidebar-accent: #28363a;
+  --sidebar-accent-foreground: #e9f1ee;
+  --sidebar-border: #31434a;
+  --sidebar-ring: #82c7b0;
+  --text-soft: #ccdcd7;
+  --line-strong: #445961;
+  --primary-soft: #223b36;
+  --primary-hover: #9bd8c4;
+  --good: #9ec2ae;
+  --bad: #d5a09a;
+  --scrollbar-thumb: #384c50d9;
+  --scrollbar-thumb-hover: #465d61d9;
+  --shimmer-highlight: rgba(255, 255, 255, 0.045);
+  --heading-mid: #9bd8c4;
+  --glow-card: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+
+/* Угли: тёмная тёплая, дышащее янтарное свечение снизу. */
+[data-theme="ember"] {
+  color-scheme: dark;
+  --radius: 0.625rem;
+  --background: #1c1613;
+  --foreground: #f2ece5;
+  --card: #271f19;
+  --card-foreground: #f2ece5;
+  --popover: #2b221c;
+  --popover-foreground: #f2ece5;
+  --secondary: #382c23;
+  --secondary-foreground: #f2ece5;
+  --muted: #302620;
+  --muted-foreground: #ab9c8c;
+  --accent: #382c23;
+  --accent-foreground: #f2ece5;
+  --primary: #dba36e;
+  --primary-foreground: #1e130a;
+  --destructive: #c9857a;
+  --destructive-foreground: #22110d;
+  --border: #473a2f;
+  --input: #5e4d3f;
+  --ring: #dba36e;
+  --chart-1: #dba36e;
+  --chart-2: #c98a68;
+  --chart-3: #a89a82;
+  --chart-4: #b7a0c4;
+  --chart-5: #d5a09a;
+  --sidebar: #271f19;
+  --sidebar-foreground: #f2ece5;
+  --sidebar-primary: #dba36e;
+  --sidebar-primary-foreground: #1e130a;
+  --sidebar-accent: #382c23;
+  --sidebar-accent-foreground: #f2ece5;
+  --sidebar-border: #473a2f;
+  --sidebar-ring: #dba36e;
+  --text-soft: #ddd1c3;
+  --line-strong: #5e4d3f;
+  --primary-soft: #47321f;
+  --primary-hover: #e8b98b;
+  --good: #b5b08e;
+  --bad: #d5a09a;
+  --scrollbar-thumb: #4e4234d9;
+  --scrollbar-thumb-hover: #5d4f3fd9;
+  --shimmer-highlight: rgba(255, 255, 255, 0.045);
+  --heading-mid: #e8b98b;
+  --glow-card: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+
+/* Сакура: светлая с нежными розовыми волнами. */
+[data-theme="sakura"] {
+  color-scheme: light;
+  --radius: 0.625rem;
+  --background: #efe7ea;
+  --foreground: #3a3136;
+  --card: #f6eff2;
+  --card-foreground: #3a3136;
+  --popover: #faf4f6;
+  --popover-foreground: #3a3136;
+  --secondary: #e6dbe0;
+  --secondary-foreground: #3a3136;
+  --muted: #ece2e6;
+  --muted-foreground: #8d7d86;
+  --accent: #e6dbe0;
+  --accent-foreground: #3a3136;
+  --primary: #b57f93;
+  --primary-foreground: #fff8fa;
+  --destructive: #a75d52;
+  --destructive-foreground: #fff6f2;
+  --border: #dcd0d6;
+  --input: #c9b9c1;
+  --ring: #b57f93;
+  --chart-1: #b57f93;
+  --chart-2: #96829a;
+  --chart-3: #a89384;
+  --chart-4: #7f9cb0;
+  --chart-5: #c9846f;
+  --sidebar: #f6eff2;
+  --sidebar-foreground: #3a3136;
+  --sidebar-primary: #b57f93;
+  --sidebar-primary-foreground: #fff8fa;
+  --sidebar-accent: #e6dbe0;
+  --sidebar-accent-foreground: #3a3136;
+  --sidebar-border: #dcd0d6;
+  --sidebar-ring: #b57f93;
+  --text-soft: #5c4f55;
+  --line-strong: #c9b9c1;
+  --primary-soft: #eedbe2;
+  --primary-hover: #9c6579;
+  --good: #79906f;
+  --bad: #a5655c;
+  --scrollbar-thumb: #cfc0c7d9;
+  --scrollbar-thumb-hover: #bcabb3d9;
+  --shimmer-highlight: rgba(70, 50, 60, 0.05);
+  --heading-mid: #9c6579;
+  --glow-card: 0 7px 22px rgba(70, 45, 55, 0.06);
+}
+
+/* Океан: тёмная сине-зелёная, в глубине медленно плывут лучи света. */
+[data-theme="ocean"] {
+  color-scheme: dark;
+  --radius: 0.625rem;
+  --background: #0d141a;
+  --foreground: #e2edf1;
+  --card: #121c23;
+  --card-foreground: #e2edf1;
+  --popover: #152128;
+  --popover-foreground: #e2edf1;
+  --secondary: #1d2c35;
+  --secondary-foreground: #e2edf1;
+  --muted: #18242c;
+  --muted-foreground: #8aa4b0;
+  --accent: #1d2c35;
+  --accent-foreground: #e2edf1;
+  --primary: #7cc4b8;
+  --primary-foreground: #08211c;
+  --destructive: #c9857a;
+  --destructive-foreground: #22110d;
+  --border: #273a44;
+  --input: #3a525e;
+  --ring: #7cc4b8;
+  --chart-1: #7cc4b8;
+  --chart-2: #7fa8c9;
+  --chart-3: #8fa8a0;
+  --chart-4: #b7a0c4;
+  --chart-5: #d5a09a;
+  --sidebar: #121c23;
+  --sidebar-foreground: #e2edf1;
+  --sidebar-primary: #7cc4b8;
+  --sidebar-primary-foreground: #08211c;
+  --sidebar-accent: #1d2c35;
+  --sidebar-accent-foreground: #e2edf1;
+  --sidebar-border: #273a44;
+  --sidebar-ring: #7cc4b8;
+  --text-soft: #c4d8de;
+  --line-strong: #3a525e;
+  --primary-soft: #1c3a37;
+  --primary-hover: #96d8cb;
+  --good: #9ec2ae;
+  --bad: #d5a09a;
+  --scrollbar-thumb: #2f4650d9;
+  --scrollbar-thumb-hover: #3b5661d9;
+  --shimmer-highlight: rgba(255, 255, 255, 0.045);
+  --heading-mid: #96d8cb;
+  --glow-card: 0 8px 24px rgba(0, 0, 0, 0.16);
+}
+
+/* Неон: тёмная тема с синтвейв-сиянием — маджента и бирюза. */
+[data-theme="neon"] {
+  color-scheme: dark;
+  --radius: 0.625rem;
+  --background: #12101b;
+  --foreground: #ece7f4;
+  --card: #191627;
+  --card-foreground: #ece7f4;
+  --popover: #1d1a2d;
+  --popover-foreground: #ece7f4;
+  --secondary: #262138;
+  --secondary-foreground: #ece7f4;
+  --muted: #221d33;
+  --muted-foreground: #a396bd;
+  --accent: #262138;
+  --accent-foreground: #ece7f4;
+  --primary: #e07fc2;
+  --primary-foreground: #26101d;
+  --destructive: #d5788a;
+  --destructive-foreground: #2a0f14;
+  --border: #352d4d;
+  --input: #4a4069;
+  --ring: #e07fc2;
+  --chart-1: #e07fc2;
+  --chart-2: #6fd6d0;
+  --chart-3: #9d8fc9;
+  --chart-4: #c9a06f;
+  --chart-5: #d5788a;
+  --sidebar: #191627;
+  --sidebar-foreground: #ece7f4;
+  --sidebar-primary: #e07fc2;
+  --sidebar-primary-foreground: #26101d;
+  --sidebar-accent: #262138;
+  --sidebar-accent-foreground: #ece7f4;
+  --sidebar-border: #352d4d;
+  --sidebar-ring: #e07fc2;
+  --text-soft: #d5cbe6;
+  --line-strong: #4a4069;
+  --primary-soft: #3a2145;
+  --primary-hover: #ea99cc;
+  --good: #8fd0b8;
+  --bad: #d5788a;
+  --scrollbar-thumb: #3d3457d9;
+  --scrollbar-thumb-hover: #4b4169d9;
+  --shimmer-highlight: rgba(255, 255, 255, 0.05);
+  --heading-mid: #ea99cc;
+  --glow-card: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+/* Космос: тёмная фиолетово-чёрная, мерцающие звёзды и туманность. */
+[data-theme="cosmos"] {
+  color-scheme: dark;
+  --radius: 0.625rem;
+  --background: #0f0d18;
+  --foreground: #e8e4f2;
+  --card: #161320;
+  --card-foreground: #e8e4f2;
+  --popover: #1a1727;
+  --popover-foreground: #e8e4f2;
+  --secondary: #232031;
+  --secondary-foreground: #e8e4f2;
+  --muted: #1e1b2b;
+  --muted-foreground: #9c94b5;
+  --accent: #232031;
+  --accent-foreground: #e8e4f2;
+  --primary: #b3a1e0;
+  --primary-foreground: #1a1128;
+  --destructive: #c9857a;
+  --destructive-foreground: #22110d;
+  --border: #2f2a44;
+  --input: #443d61;
+  --ring: #b3a1e0;
+  --chart-1: #b3a1e0;
+  --chart-2: #8fb7d5;
+  --chart-3: #d5c3a0;
+  --chart-4: #df9fc4;
+  --chart-5: #9dd5c0;
+  --sidebar: #161320;
+  --sidebar-foreground: #e8e4f2;
+  --sidebar-primary: #b3a1e0;
+  --sidebar-primary-foreground: #1a1128;
+  --sidebar-accent: #232031;
+  --sidebar-accent-foreground: #e8e4f2;
+  --sidebar-border: #2f2a44;
+  --sidebar-ring: #b3a1e0;
+  --text-soft: #d0cae4;
+  --line-strong: #443d61;
+  --primary-soft: #2d2547;
+  --primary-hover: #c6b6ec;
+  --good: #9ec2ae;
+  --bad: #d5a09a;
+  --scrollbar-thumb: #383252d9;
+  --scrollbar-thumb-hover: #453e63d9;
+  --shimmer-highlight: rgba(255, 255, 255, 0.05);
+  --heading-mid: #c6b6ec;
+  --glow-card: 0 8px 24px rgba(0, 0, 0, 0.18);
 }
 
 @layer base {
@@ -96,20 +547,25 @@
     @apply border-border outline-ring/50;
   }
   html {
+    /* Базовый цвет живёт на <html>: тогда фиксированный слой
+       .theme-backdrop (z-index:-1) виден сквозь прозрачный body —
+       на нём рисуются анимированные фоны живых тем. */
+    background: var(--background);
     scrollbar-color: var(--scrollbar-thumb) transparent;
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background: transparent;
   }
-  /* Neon-consistent keyboard focus ring for custom links/buttons. */
+  /* Тихое, но заметное кольцо фокуса с клавиатуры. */
   :focus-visible {
-    outline: 2px solid color-mix(in oklch, var(--primary) 75%, transparent);
+    outline: 2px solid var(--ring);
     outline-offset: 2px;
     border-radius: 4px;
   }
   ::selection {
-    background: color-mix(in oklch, var(--primary) 35%, transparent);
+    background: color-mix(in srgb, var(--primary) 30%, transparent);
     color: var(--foreground);
   }
 }
@@ -137,56 +593,1008 @@
   display: none;
 }
 
-/* ---------- rating wheel ---------- */
-.wheel-strip {
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0,
-    black 52px,
-    black calc(100% - 52px),
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    to right,
-    transparent 0,
-    black 52px,
-    black calc(100% - 52px),
-    transparent 100%
-  );
-  scrollbar-width: none;
-}
-.wheel-strip::-webkit-scrollbar {
+/* ---------- анимированный фон живых тем ----------
+   Слой .theme-backdrop (fixed, z-index:-1) рендерится в App первым
+   ребёнком body; внутри — три независимых слоя .bd-layer, у каждого
+   своя анимация (разные длительности/направления) — фон живёт явно,
+   а не едва заметно. Базовый цвет фона живёт на <html>, body прозрачен.
+   Анимации — только transform/opacity (GPU), без перерисовки. */
+.theme-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   display: none;
+  overflow: hidden;
 }
-.wheel-digit {
+.bd-layer {
+  position: absolute;
+  inset: -30%; /* с запасом на большие сдвиги — края не оголяются */
+  will-change: transform, opacity;
+}
+
+/* --- Аврора: три сияния плывут по небу с разной скоростью --- */
+[data-theme="aurora"] .theme-backdrop {
+  display: block;
+}
+[data-theme="aurora"] .bd-1 {
+  background:
+    radial-gradient(38% 34% at 18% 12%, rgba(110, 219, 178, 0.30), transparent 68%),
+    radial-gradient(26% 24% at 62% 6%, rgba(134, 222, 158, 0.16), transparent 70%);
+  animation: aurora-a 23s ease-in-out infinite alternate;
+}
+[data-theme="aurora"] .bd-2 {
+  background: radial-gradient(34% 36% at 82% 22%, rgba(111, 178, 232, 0.26), transparent 68%);
+  animation: aurora-b 31s ease-in-out infinite alternate;
+}
+[data-theme="aurora"] .bd-3 {
+  background:
+    radial-gradient(46% 40% at 58% 88%, rgba(96, 214, 190, 0.20), transparent 72%),
+    radial-gradient(30% 26% at 12% 78%, rgba(126, 148, 226, 0.15), transparent 70%);
+  animation: aurora-c 41s ease-in-out infinite alternate;
+}
+@keyframes aurora-a {
+  0% { transform: translate3d(-4%, -3%, 0) scale(1) rotate(-2deg); opacity: 0.9; }
+  50% { transform: translate3d(5%, 3%, 0) scale(1.18) rotate(2deg); opacity: 1; }
+  100% { transform: translate3d(-3%, 5%, 0) scale(1.06) rotate(-1deg); opacity: 0.85; }
+}
+@keyframes aurora-b {
+  0% { transform: translate3d(3%, 2%, 0) scale(1.05); opacity: 0.7; }
+  100% { transform: translate3d(-6%, -5%, 0) scale(1.25); opacity: 1; }
+}
+@keyframes aurora-c {
+  0% { transform: translate3d(2%, -4%, 0) scale(1.1) rotate(1deg); opacity: 0.8; }
+  50% { transform: translate3d(-5%, 4%, 0) scale(1); opacity: 1; }
+  100% { transform: translate3d(4%, 6%, 0) scale(1.22) rotate(-2deg); opacity: 0.75; }
+}
+
+/* --- Угли: жар дышит снизу, искры всплывают --- */
+[data-theme="ember"] .theme-backdrop {
+  display: block;
+}
+[data-theme="ember"] .bd-1 {
+  background: radial-gradient(56% 46% at 50% 112%, rgba(240, 158, 84, 0.34), transparent 70%);
+  animation: ember-breathe 9s ease-in-out infinite alternate;
+}
+[data-theme="ember"] .bd-2 {
+  background:
+    radial-gradient(30% 26% at 78% 96%, rgba(232, 106, 64, 0.24), transparent 68%),
+    radial-gradient(26% 22% at 18% 100%, rgba(244, 186, 110, 0.20), transparent 70%);
+  animation: ember-rise 15s ease-in-out infinite alternate;
+}
+[data-theme="ember"] .bd-3 {
+  background:
+    radial-gradient(14% 12% at 30% 60%, rgba(246, 168, 96, 0.14), transparent 72%),
+    radial-gradient(10% 9% at 72% 42%, rgba(232, 140, 84, 0.12), transparent 72%);
+  animation: ember-sparks 11s ease-in-out infinite alternate;
+}
+@keyframes ember-breathe {
+  0% { transform: translate3d(0, 2%, 0) scale(1); opacity: 0.75; }
+  100% { transform: translate3d(0, -4%, 0) scale(1.22); opacity: 1; }
+}
+@keyframes ember-rise {
+  0% { transform: translate3d(-2%, 3%, 0) scale(1); opacity: 0.6; }
+  50% { transform: translate3d(2%, -2%, 0) scale(1.15); opacity: 1; }
+  100% { transform: translate3d(-1%, 1%, 0) scale(1.05); opacity: 0.7; }
+}
+@keyframes ember-sparks {
+  0% { transform: translate3d(0, 4%, 0) scale(0.95); opacity: 0.35; }
+  100% { transform: translate3d(-3%, -8%, 0) scale(1.3); opacity: 0.9; }
+}
+
+/* --- Сакура: два розовых прибоя текут в разные стороны --- */
+[data-theme="sakura"] .theme-backdrop {
+  display: block;
+}
+[data-theme="sakura"] .bd-1 {
+  background:
+    radial-gradient(40% 32% at 12% 18%, rgba(222, 130, 160, 0.34), transparent 70%),
+    radial-gradient(28% 24% at 70% 8%, rgba(205, 150, 196, 0.22), transparent 70%);
+  animation: sakura-flow 19s ease-in-out infinite alternate;
+}
+[data-theme="sakura"] .bd-2 {
+  background: radial-gradient(38% 32% at 86% 30%, rgba(198, 156, 214, 0.26), transparent 68%);
+  animation: sakura-flow-2 27s ease-in-out infinite alternate;
+}
+[data-theme="sakura"] .bd-3 {
+  background: radial-gradient(46% 38% at 60% 92%, rgba(226, 148, 176, 0.30), transparent 72%);
+  animation: sakura-flow 35s ease-in-out infinite alternate-reverse;
+}
+@keyframes sakura-flow {
+  0% { transform: translate3d(-5%, -2%, 0) scale(1) rotate(-1.5deg); opacity: 0.8; }
+  50% { transform: translate3d(4%, 3%, 0) scale(1.2) rotate(1deg); opacity: 1; }
+  100% { transform: translate3d(-2%, 5%, 0) scale(1.05) rotate(-0.5deg); opacity: 0.85; }
+}
+@keyframes sakura-flow-2 {
+  0% { transform: translate3d(4%, -3%, 0) scale(1.15); opacity: 0.65; }
+  100% { transform: translate3d(-5%, 5%, 0) scale(1); opacity: 1; }
+}
+
+/* --- Океан: лучи света медленно ходят из стороны в сторону --- */
+[data-theme="ocean"] .theme-backdrop {
+  display: block;
+}
+[data-theme="ocean"] .bd-1 {
+  background: repeating-linear-gradient(
+    68deg,
+    transparent 0 8%,
+    rgba(124, 196, 184, 0.06) 9% 12%,
+    transparent 13% 22%,
+    rgba(127, 168, 201, 0.05) 23% 25%,
+    transparent 26% 40%
+  );
+  animation: ocean-rays 26s ease-in-out infinite alternate;
+}
+[data-theme="ocean"] .bd-2 {
+  background:
+    radial-gradient(44% 38% at 78% 20%, rgba(94, 168, 196, 0.20), transparent 70%),
+    radial-gradient(30% 26% at 16% 12%, rgba(116, 200, 182, 0.16), transparent 72%);
+  animation: ocean-drift 33s ease-in-out infinite alternate;
+}
+[data-theme="ocean"] .bd-3 {
+  background:
+    radial-gradient(40% 34% at 40% 100%, rgba(64, 150, 158, 0.24), transparent 72%),
+    radial-gradient(22% 20% at 70% 86%, rgba(124, 196, 184, 0.14), transparent 70%);
+  animation: ocean-deep 21s ease-in-out infinite alternate;
+}
+@keyframes ocean-rays {
+  0% { transform: translate3d(-6%, 0, 0) skewX(-4deg) scale(1.05); opacity: 0.55; }
+  100% { transform: translate3d(6%, 2%, 0) skewX(5deg) scale(1.15); opacity: 1; }
+}
+@keyframes ocean-drift {
+  0% { transform: translate3d(4%, -3%, 0) scale(1); opacity: 0.7; }
+  100% { transform: translate3d(-5%, 4%, 0) scale(1.22); opacity: 1; }
+}
+@keyframes ocean-deep {
+  0% { transform: translate3d(-3%, 3%, 0) scale(1.08); opacity: 0.6; }
+  100% { transform: translate3d(4%, -4%, 0) scale(1); opacity: 1; }
+}
+
+/* --- Неон: синтвейв — свечение пульсирует, как будто город дышит --- */
+[data-theme="neon"] .theme-backdrop {
+  display: block;
+}
+[data-theme="neon"] .bd-1 {
+  background:
+    radial-gradient(50% 40% at 50% 116%, rgba(224, 127, 194, 0.30), transparent 66%),
+    radial-gradient(30% 24% at 50% 108%, rgba(111, 214, 208, 0.20), transparent 70%);
+  animation: neon-pulse 7s ease-in-out infinite alternate;
+}
+[data-theme="neon"] .bd-2 {
+  background:
+    radial-gradient(34% 30% at 84% 24%, rgba(157, 143, 201, 0.24), transparent 68%),
+    radial-gradient(26% 22% at 12% 30%, rgba(111, 214, 208, 0.16), transparent 70%);
+  animation: neon-glow 24s ease-in-out infinite alternate;
+}
+[data-theme="neon"] .bd-3 {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 18%,
+    rgba(224, 127, 194, 0.045) 18.5% 19%,
+    transparent 19.5% 46%,
+    rgba(111, 214, 208, 0.035) 46.5% 47%,
+    transparent 47.5% 100%
+  );
+  animation: neon-scan 13s linear infinite;
+}
+@keyframes neon-pulse {
+  0% { transform: translate3d(0, 2%, 0) scale(1); opacity: 0.7; }
+  100% { transform: translate3d(0, -3%, 0) scale(1.24); opacity: 1; }
+}
+@keyframes neon-glow {
+  0% { transform: translate3d(-4%, 2%, 0) scale(1.02) rotate(-2deg); opacity: 0.65; }
+  50% { transform: translate3d(3%, -2%, 0) scale(1.18) rotate(1deg); opacity: 1; }
+  100% { transform: translate3d(-2%, 4%, 0) scale(1.06) rotate(-1deg); opacity: 0.8; }
+}
+@keyframes neon-scan {
+  0% { transform: translate3d(0, 10%, 0); opacity: 0.5; }
+  100% { transform: translate3d(0, -10%, 0); opacity: 1; }
+}
+
+/* --- Космос: звёзды мерцают, туманность медленно ворочается --- */
+[data-theme="cosmos"] .theme-backdrop {
+  display: block;
+}
+[data-theme="cosmos"] .bd-1 {
+  background-image:
+    radial-gradient(1.6px 1.6px at 12% 22%, rgba(255, 255, 255, 0.95), transparent 100%),
+    radial-gradient(1.2px 1.2px at 28% 64%, rgba(255, 255, 255, 0.8), transparent 100%),
+    radial-gradient(1.8px 1.8px at 44% 14%, rgba(232, 224, 255, 0.9), transparent 100%),
+    radial-gradient(1.1px 1.1px at 61% 42%, rgba(255, 255, 255, 0.75), transparent 100%),
+    radial-gradient(1.6px 1.6px at 74% 76%, rgba(255, 255, 255, 0.9), transparent 100%),
+    radial-gradient(1.2px 1.2px at 88% 30%, rgba(240, 236, 255, 0.8), transparent 100%),
+    radial-gradient(1.4px 1.4px at 8% 82%, rgba(255, 255, 255, 0.85), transparent 100%),
+    radial-gradient(1px 1px at 52% 88%, rgba(255, 255, 255, 0.7), transparent 100%),
+    radial-gradient(1.5px 1.5px at 96% 62%, rgba(232, 224, 255, 0.85), transparent 100%),
+    radial-gradient(1.1px 1.1px at 36% 96%, rgba(255, 255, 255, 0.75), transparent 100%);
+  animation: cosmos-twinkle-1 5.5s ease-in-out infinite alternate,
+    cosmos-drift 60s ease-in-out infinite alternate;
+}
+[data-theme="cosmos"] .bd-2 {
+  background-image:
+    radial-gradient(1.4px 1.4px at 18% 44%, rgba(255, 250, 235, 0.9), transparent 100%),
+    radial-gradient(1px 1px at 39% 78%, rgba(255, 255, 255, 0.7), transparent 100%),
+    radial-gradient(1.7px 1.7px at 57% 28%, rgba(255, 255, 255, 0.95), transparent 100%),
+    radial-gradient(1.1px 1.1px at 68% 60%, rgba(240, 236, 255, 0.75), transparent 100%),
+    radial-gradient(1.3px 1.3px at 82% 12%, rgba(255, 255, 255, 0.85), transparent 100%),
+    radial-gradient(1px 1px at 5% 55%, rgba(255, 255, 255, 0.7), transparent 100%),
+    radial-gradient(1.5px 1.5px at 92% 86%, rgba(255, 250, 235, 0.9), transparent 100%),
+    radial-gradient(1.2px 1.2px at 48% 52%, rgba(255, 255, 255, 0.8), transparent 100%);
+  animation: cosmos-twinkle-2 7s ease-in-out infinite alternate,
+    cosmos-drift 48s ease-in-out infinite alternate-reverse;
+}
+[data-theme="cosmos"] .bd-3 {
+  background:
+    radial-gradient(42% 36% at 72% 28%, rgba(148, 118, 214, 0.22), transparent 70%),
+    radial-gradient(36% 30% at 20% 74%, rgba(108, 140, 208, 0.18), transparent 72%),
+    radial-gradient(28% 24% at 56% 92%, rgba(196, 148, 214, 0.14), transparent 70%);
+  animation: cosmos-nebula 37s ease-in-out infinite alternate;
+}
+@keyframes cosmos-twinkle-1 {
+  0% { opacity: 0.35; }
+  100% { opacity: 1; }
+}
+@keyframes cosmos-twinkle-2 {
+  0% { opacity: 1; }
+  100% { opacity: 0.3; }
+}
+@keyframes cosmos-drift {
+  0% { transform: translate3d(-2.5%, -1.5%, 0) scale(1.02); }
+  100% { transform: translate3d(2.5%, 2%, 0) scale(1.08); }
+}
+@keyframes cosmos-nebula {
+  0% { transform: translate3d(-4%, 3%, 0) scale(1.05) rotate(-2deg); opacity: 0.7; }
+  50% { transform: translate3d(3%, -2%, 0) scale(1.2) rotate(1deg); opacity: 1; }
+  100% { transform: translate3d(-2%, -4%, 0) scale(1.1) rotate(-1deg); opacity: 0.8; }
+}
+
+/* Кроссфейд при смене темы: applyTheme() вешает класс на короткое время. */
+.theme-switching,
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
   transition:
-    font-size 0.14s ease,
-    color 0.14s ease,
-    transform 0.14s ease,
-    opacity 0.14s ease;
-  will-change: transform;
-  line-height: 1;
+    background-color 0.34s ease,
+    border-color 0.34s ease,
+    color 0.22s ease,
+    fill 0.22s ease,
+    box-shadow 0.34s ease !important;
+}
+
+/* ---------- кнопки (референс v3, .btn — 1:1) ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 7px;
+  padding: 9px 12px;
+  font-size: 11px;
+  font-weight: 750;
+  border: 1px solid var(--line-strong);
+  background: var(--card);
+  color: var(--foreground);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.1s ease,
+    box-shadow 0.15s ease;
+}
+.btn:hover {
+  border-color: var(--primary);
+}
+.btn:active {
+  transform: translateY(1px) scale(0.98);
+}
+.btn:disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+.btn-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+.btn-primary:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+.btn-quiet {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-soft);
+}
+/* Мини-кнопка внутри строк (референс: .quick-item button). */
+.btn-tiny {
+  padding: 6px 8px;
+  font-size: 10px;
+  border-radius: 6px;
+}
+/* Текстовая кнопка-ссылка (референс, .text-button). */
+.text-button {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--primary);
+  font-weight: 750;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.text-button:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---------- главная: компоненты референса v3, порт 1:1 ----------
+   Токены референса (--panel/--line/--accent…) отображены на семантические
+   переменные тем: panel→card, panel-2→muted, panel-3→secondary,
+   line→border, line-strong→input, accent→primary, text-soft→text-soft. */
+
+.pagehead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 22px;
+  margin-bottom: 22px;
+}
+.overline {
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  font-size: 10px;
+  color: var(--primary);
+  font-weight: 800;
+  margin-bottom: 7px;
+}
+.pagehead h1 {
+  font-size: 30px;
+  line-height: 1.15;
+  letter-spacing: -0.8px;
+  margin: 0 0 7px;
+  font-weight: 760;
+}
+.subtext {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  margin: 0;
+  line-height: 1.55;
+  max-width: 560px;
+}
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 17px;
+  min-width: 0;
+}
+.panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 13px;
+}
+.panel-heading h2 {
+  font-size: 17px;
+  letter-spacing: -0.25px;
+  margin: 0;
+  font-weight: 750;
+}
+.panel-heading p {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  margin: 5px 0 0;
+  line-height: 1.45;
+}
+.source-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  padding: 4px 7px;
+  font-size: 9px;
+  color: var(--muted-foreground);
+  border-radius: 5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.source-label::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--good);
+}
+
+.home-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(310px, 0.82fr);
+  gap: 16px;
+  align-items: stretch;
+}
+.chart-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.tab-button {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 6px;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  padding: 7px 9px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.12s ease, background-color 0.12s ease, border-color 0.12s ease;
+}
+.tab-button:hover {
+  color: var(--foreground);
+}
+.tab-button.active {
+  background: var(--secondary);
+  border-color: var(--input);
+  color: var(--foreground);
+  font-weight: 750;
+}
+.chart-summary {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 7px 0 10px;
+  font-size: 10px;
+  color: var(--muted-foreground);
+  flex-wrap: wrap;
+}
+.chart-summary strong {
+  color: var(--text-soft);
+  font-weight: 650;
+}
+.chart-list {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.chart-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 24px 74px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+  color: inherit;
+  min-width: 0;
+}
+.chart-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 1px;
+}
+.chart-row .rank {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+.chart-row .chart-cover {
+  width: 74px;
+  height: 35px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: var(--secondary);
+}
+.chart-row .chart-name {
+  font-size: 12px;
+  display: block;
+  font-weight: 750;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chart-row:hover .chart-name {
+  color: var(--primary);
+}
+.chart-row .chart-genre {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chart-row .chart-metric {
+  font-size: 10px;
+  color: var(--text-soft);
+  text-align: right;
+  white-space: nowrap;
+}
+.chart-row .chart-metric b {
+  display: block;
+  font-weight: 700;
+}
+.chart-row .chart-metric small {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 9px;
+  margin-top: 2px;
+}
+
+.quick-rate {
+  display: flex;
+  flex-direction: column;
+}
+.quick-rate-intro {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+  margin: 0 0 13px;
+}
+.quick-list {
+  display: flex;
+  flex-direction: column;
+}
+.quick-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+}
+.quick-item:last-child {
+  border-bottom: 0;
+}
+.quick-cover {
+  width: 52px;
+  height: 31px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex: none;
+}
+.quick-info {
+  flex: 1;
+  min-width: 0;
+}
+.quick-info strong {
+  display: block;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.quick-info small {
+  display: block;
+  font-size: 10px;
+  color: var(--muted-foreground);
+  margin-top: 2px;
+}
+.quick-empty {
+  border: 1px dashed var(--input);
+  padding: 13px;
+  border-radius: 7px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.section {
+  margin-top: 28px;
+}
+.section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 13px;
+}
+.section-head h2 {
+  font-size: 17px;
+  letter-spacing: -0.25px;
+  margin: 0;
+  font-weight: 750;
+}
+.section-head p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.two-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.feed {
+  display: flex;
+  flex-direction: column;
+}
+.feed-item {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.feed-item:first-child {
+  padding-top: 2px;
+}
+.feed-item:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.feedtext {
+  font-size: 11px;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+.feedtext strong {
+  color: var(--foreground);
+  font-weight: 750;
+}
+.feedtext p {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+.feedrating {
+  font-size: 10px;
+  color: var(--primary);
+  font-weight: 800;
+  white-space: nowrap;
+  padding-top: 3px;
+}
+
+.library-summary {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  margin: 0 0 16px;
+}
+.library-summary strong {
+  color: var(--foreground);
+  font-size: 15px;
+  margin-right: 5px;
+  font-weight: 700;
+}
+.mini-library {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+.mini-game {
+  min-width: 0;
+}
+.mini-cover {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--secondary);
+}
+.mini-game strong {
+  display: block;
+  font-size: 11px;
+  margin-top: 7px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mini-game small {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  margin-top: 3px;
+}
+.empty-note {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  padding: 16px;
+  border: 1px dashed var(--border);
+  border-radius: 7px;
+  line-height: 1.55;
+}
+
+.review-list {
+  display: flex;
+  flex-direction: column;
+}
+.review-entry {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr) auto;
+  gap: 11px;
+  align-items: start;
+}
+.review-entry:first-child {
+  padding-top: 1px;
+}
+.review-entry:last-child {
+  border: 0;
+  padding-bottom: 1px;
+}
+.review-cover {
+  width: 78px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 4px;
+}
+.review-entry strong {
+  font-size: 12px;
+}
+.review-entry p {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+.review-entry .my-score {
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.data-note {
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+  border-top: 1px solid var(--border);
+  padding-top: 11px;
+  margin-top: 17px;
+}
+
+@media (max-width: 1050px) {
+  .home-top {
+    grid-template-columns: minmax(0, 1fr) minmax(290px, 0.86fr);
+  }
+  .chart-row {
+    grid-template-columns: 20px 65px minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+  .chart-row .chart-cover {
+    width: 65px;
+  }
+}
+@media (max-width: 760px) {
+  .pagehead {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .head-actions {
+    flex-wrap: wrap;
+  }
+  .home-top,
+  .two-columns {
+    grid-template-columns: 1fr;
+  }
+  .section {
+    margin-top: 23px;
+  }
+  .chart-row {
+    grid-template-columns: 20px 68px minmax(0, 1fr) auto;
+  }
+  .chart-row .chart-cover {
+    width: 68px;
+  }
+  .review-entry {
+    grid-template-columns: 65px minmax(0, 1fr) auto;
+  }
+  .review-cover {
+    width: 65px;
+  }
+}
+@media (max-width: 420px) {
+  .pagehead h1 {
+    font-size: 26px;
+  }
+  .chart-row {
+    grid-template-columns: 18px 57px minmax(0, 1fr) auto;
+    gap: 7px;
+  }
+  .chart-row .chart-cover {
+    width: 57px;
+    height: 31px;
+  }
+  .quick-cover {
+    width: 45px;
+  }
+  .mini-library {
+    gap: 7px;
+  }
 }
 
 /* ---------- animations ---------- */
+/* Переходы страниц: на десктопе — длинные, маслянистые (как будто 200 FPS:
+   медленный разгон и мягкое докадривание, expo-out), на телефоне —
+   короткое простое затухание, чтобы не жечь батарею и не лагать. */
 @keyframes view-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(18px) scale(0.988);
+    filter: blur(7px);
+  }
+  40% {
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+.animate-view-in {
+  animation: view-in 0.62s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (max-width: 767px) {
+  .animate-view-in {
+    animation: view-in-simple 0.24s ease-out both;
+  }
+}
+
+/* Пружинистый «подъём» — секции и карточки при появлении. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.982);
+  }
+  55% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-rise-in {
+  animation: rise-in 0.56s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (max-width: 767px) {
+  .animate-rise-in {
+    animation: rise-in-simple 0.26s ease-out both;
+  }
+}
+
+/* Каскад: дети появляются по очереди (лёгкая волна).
+   На десктопе — более длинная волна, на мобиле — почти мгновенно. */
+.stagger > * {
+  animation: rise-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0.03s; }
+.stagger > *:nth-child(2) { animation-delay: 0.09s; }
+.stagger > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger > *:nth-child(4) { animation-delay: 0.21s; }
+.stagger > *:nth-child(5) { animation-delay: 0.27s; }
+.stagger > *:nth-child(6) { animation-delay: 0.33s; }
+.stagger > *:nth-child(7) { animation-delay: 0.39s; }
+.stagger > *:nth-child(8) { animation-delay: 0.45s; }
+.stagger > *:nth-child(n + 9) { animation-delay: 0.5s; }
+@media (max-width: 767px) {
+  .stagger > * {
+    animation: rise-in-simple 0.26s ease-out both;
+  }
+  .stagger > *:nth-child(n) { animation-delay: 0.02s; }
+  .stagger > *:nth-child(n + 5) { animation-delay: 0.06s; }
+}
+
+/* Упрощённые мобильные варианты: только прозрачность + лёгкий сдвиг. */
+@keyframes view-in-simple {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
     transform: none;
   }
 }
-.animate-view-in {
-  animation: view-in 0.28s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+@keyframes rise-in-simple {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Лёгкий ховер-подъём для карточек и панелей: плавнее и дольше.
+   На тач-устройствах hover не важен — transition остаётся коротким. */
+.lift {
+  transition:
+    transform 0.42s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.32s ease,
+    box-shadow 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+.lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--glow-card);
+}
+.lift:active {
+  transform: translateY(-1px) scale(0.99);
+}
+@media (hover: none) {
+  .lift {
+    transition:
+      transform 0.18s ease,
+      border-color 0.18s ease,
+      box-shadow 0.18s ease;
+  }
+  .lift:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+/* Столбики распределения оценок вырастают снизу. */
+@keyframes grow-up {
+  from {
+    transform: scaleY(0.02);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+.animate-grow-up {
+  transform-origin: bottom;
+  animation: grow-up 0.4s cubic-bezier(0.22, 0.85, 0.32, 1.02) both;
+}
+
+/* Покачивание фирменного знака при наведении на логотип. */
+@keyframes logo-tilt {
+  0% { transform: rotate(-4deg); }
+  35% { transform: rotate(5deg) scale(1.06); }
+  70% { transform: rotate(-7deg); }
+  100% { transform: rotate(-4deg); }
+}
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  flex: none;
+  border: 1.5px solid var(--primary);
+  border-radius: 2px;
+  color: var(--primary);
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 900;
+  font-size: 16px;
+  line-height: 1;
+  transform: rotate(-4deg);
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+a:hover > .brand-mark,
+button:hover > .brand-mark {
+  animation: logo-tilt 0.55s ease;
 }
 
 @keyframes carousel-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(5px);
   }
   to {
     opacity: 1;
@@ -194,7 +1602,26 @@
   }
 }
 .animate-carousel-in {
-  animation: carousel-in 0.26s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation: carousel-in 0.22s ease-out both;
+}
+
+/* Плавное раскрытие секций внутри окна игры (карусель той же оценки,
+   сворачиваемый отзыв). */
+@keyframes collapse-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    max-height: 420px;
+  }
+}
+.animate-collapse-in {
+  animation: collapse-in 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+  overflow: hidden;
 }
 
 @keyframes fade-in {
@@ -206,7 +1633,7 @@
   }
 }
 .animate-fade-in {
-  animation: fade-in 0.25s ease both;
+  animation: fade-in 0.2s ease both;
 }
 
 /* Heart pop when a review gets liked */
@@ -215,24 +1642,24 @@
     transform: scale(1);
   }
   40% {
-    transform: scale(1.45) rotate(-8deg);
+    transform: scale(1.35) rotate(-6deg);
   }
   70% {
-    transform: scale(0.9);
+    transform: scale(0.92);
   }
   100% {
     transform: scale(1);
   }
 }
 .animate-like-pop {
-  animation: like-pop 0.35s cubic-bezier(0.3, 1.6, 0.4, 1) both;
+  animation: like-pop 0.3s cubic-bezier(0.3, 1.6, 0.4, 1) both;
 }
 
 /* Comment thread sliding open under a review */
 @keyframes comment-in {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translateY(-3px);
   }
   to {
     opacity: 1;
@@ -240,14 +1667,14 @@
   }
 }
 .animate-comment-in {
-  animation: comment-in 0.22s ease-out both;
+  animation: comment-in 0.18s ease-out both;
 }
 
-/* User hover-card: pop-in with a slight upward drift */
+/* User hover-card pop-in */
 @keyframes card-in {
   from {
     opacity: 0;
-    transform: translateY(6px) scale(0.97);
+    transform: translateY(4px) scale(0.98);
   }
   to {
     opacity: 1;
@@ -255,49 +1682,22 @@
   }
 }
 .animate-card-in {
-  animation: card-in 0.18s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  animation: card-in 0.14s ease-out both;
 }
 
-/* Achievement card unlock shine */
+/* Achievement badge unlock */
 @keyframes badge-shine {
   from {
     opacity: 0;
-    transform: scale(0.85) rotate(-4deg);
+    transform: scale(0.9);
   }
   to {
     opacity: 1;
-    transform: scale(1) rotate(0deg);
+    transform: scale(1);
   }
 }
 .animate-badge-shine {
-  animation: badge-shine 0.35s cubic-bezier(0.3, 1.5, 0.5, 1) both;
-}
-
-.text-glow {
-  text-shadow: 0 0 26px var(--text-glow-color);
-}
-
-/* ---------- home hero: soft radial glow (no grid) ---------- */
-.hero-glow {
-  background:
-    radial-gradient(
-      ellipse 60% 55% at 50% 0%,
-      var(--hero-glow-color),
-      transparent 70%
-    );
-}
-
-/* ---------- hero heading gradient (theme-aware middle stop) ---------- */
-.heading-gradient {
-  background-image: linear-gradient(
-    90deg,
-    var(--primary),
-    var(--heading-mid),
-    var(--primary)
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  animation: badge-shine 0.25s ease-out both;
 }
 
 /* ---------- skeleton shimmer ---------- */
@@ -356,7 +1756,7 @@
 }
 .rich-html h2,
 .rich-html h3 {
-  font-weight: 800;
+  font-weight: 700;
   margin: 1em 0 0.4em;
   color: var(--foreground);
 }
@@ -374,7 +1774,7 @@
 .rich-html img {
   max-width: 100%;
   height: auto;
-  border-radius: 0.75rem;
+  border-radius: 0.625rem;
   margin: 0.75em 0;
   border: 1px solid var(--border);
 }
