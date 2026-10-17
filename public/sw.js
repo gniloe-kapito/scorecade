@@ -13,7 +13,7 @@
  * VERSION bump forces all clients to drop old caches and refresh the shell
  * (skipWaiting + clients.claim), so users never get stuck on a stale build.
  */
-const VERSION = "v2";
+const VERSION = "v3";
 const SHELL_CACHE = `scorecade-shell-${VERSION}`;
 const IMAGE_CACHE = "scorecade-images";
 const MAX_IMAGES = 300;
