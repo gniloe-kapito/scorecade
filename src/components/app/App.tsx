@@ -15,6 +15,8 @@ import { BottomNav } from "./BottomNav";
 import { Footer } from "./Footer";
 import { BackToTop } from "./BackToTop";
 import { GameModal } from "./GameModal";
+import { AdminBar } from "./AdminBar";
+import { ThemeCanvas } from "./ThemeCanvas";
 import { closeGameModal } from "./game-modal-store";
 import { HomeView } from "./views/HomeView";
 import { GameView } from "./views/GameView";
@@ -236,14 +238,20 @@ export function App() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      {/* Плашка админ-режима: на всех страницах, сверху (цвет
+          предупреждения — не зависит от темы). */}
+      <AdminBar />
       {/* Живой фон анимированных тем (аврора/угли/сакура/океан/неон/космос):
           три независимых слоя с собственными анимациями — под контентом,
-          базовый цвет при этом живёт на <html> (см. globals.css). */}
+          базовый цвет при этом живёт на <html> (см. globals.css).
+          Темы «Гроза» и «Матрица» рисуются на canvas (ThemeCanvas) —
+          у них собственных CSS-слоев нет. */}
       <div className="theme-backdrop" aria-hidden>
         <span className="bd-layer bd-1" />
         <span className="bd-layer bd-2" />
         <span className="bd-layer bd-3" />
       </div>
+      <ThemeCanvas />
       {apiUnconfigured && (
         <div
           role="status"

@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, ChevronRight, UserRound } from "lucide-react";
+import { CalendarDays, ChevronRight, Shield, UserRound } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { formatAverage, formatMonthYear } from "@/lib/format";
+import { useAdmins } from "@/hooks/use-admins";
 import { UserAvatar } from "./UserAvatar";
 import { FollowButton } from "./FollowButton";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -59,6 +60,11 @@ export function UserLink({
   const anchorRef = useRef<HTMLAnchorElement>(null);
   const openTimer = useRef<number | null>(null);
   const closeTimer = useRef<number | null>(null);
+
+  // Отметка администратора: красный ник + маленький значок щита.
+  // Один общий запрос на страницу (кэш react-query + браузера).
+  const { adminNames, badgeVisible } = useAdmins();
+  const isAdmin = badgeVisible && adminNames.has(username.toLowerCase());
 
   const clearTimers = () => {
     if (openTimer.current !== null) {
@@ -178,11 +184,20 @@ export function UserLink({
         aria-label={ariaLabel ?? `Профиль ${username}`}
         className={cn(
           "cursor-pointer transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1",
+          isAdmin && "admin-name hover:opacity-80",
           className,
         )}
       >
         {children ?? username}
       </a>
+      {isAdmin && (
+        <Shield
+          className="ml-1 inline h-3 w-3 shrink-0 self-center text-[var(--admin-red)]"
+          aria-label="Администратор"
+        >
+          <title>Администратор</title>
+        </Shield>
+      )}
 
       {/* Portal to <body>: ancestor transforms/filters (open comment threads
           keep `transform: translateY(0)` after their animation) must not

@@ -14,6 +14,7 @@ import { api, ApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { loginRedirectUrl } from "@/lib/router";
 import { timeAgo, formatDateTime } from "@/lib/format";
+import { AdminDeleteCommentButton } from "@/components/app/AdminReviewActions";
 import { UserAvatar } from "@/components/app/UserAvatar";
 import { UserLink } from "@/components/app/UserLink";
 import { LikeButton } from "@/components/app/LikeButton";
@@ -285,6 +286,11 @@ function CommentsPanel({
                   c={c}
                   onReply={user ? (id, username) => setReplyTo({ id, username }) : undefined}
                   onRemove={c.isMine ? remove : undefined}
+                  onAdminRemoved={
+                    user && !c.isMine
+                      ? () => void commentsQuery.refetch()
+                      : undefined
+                  }
                   isReply={false}
                 />
                 {replies.length > 0 && (
@@ -298,6 +304,11 @@ function CommentsPanel({
                           c={r}
                           onReply={user ? (id, username) => setReplyTo({ id, username }) : undefined}
                           onRemove={r.isMine ? remove : undefined}
+                          onAdminRemoved={
+                            user && !r.isMine
+                              ? () => void commentsQuery.refetch()
+                              : undefined
+                          }
                           isReply
                           showReplyTo={r.replyToId !== c.id ? r.replyToAuthor : null}
                         />
@@ -390,12 +401,15 @@ function CommentRow({
   c,
   onReply,
   onRemove,
+  onAdminRemoved,
   isReply,
   showReplyTo,
 }: {
   c: ReviewCommentRow;
   onReply?: (id: number, username: string) => void;
   onRemove?: (id: number) => void;
+  /** Админ-удаление сработало — обновить ветку (рефетч). */
+  onAdminRemoved?: () => void;
   isReply: boolean;
   /** When a reply answers another reply in the same group — show its author. */
   showReplyTo?: string | null;
@@ -445,7 +459,7 @@ function CommentRow({
         >
           {c.text}
         </p>
-        <div className="mt-0.5 flex items-center gap-1">
+        <div className="mt-0.5 flex flex-wrap items-center gap-1">
           {onReply && (
             <button
               type="button"
@@ -460,6 +474,13 @@ function CommentRow({
               Ответить
             </button>
           )}
+          {/* Админ-удаление: виден только в админ-режиме, не на своих */}
+          <AdminDeleteCommentButton
+            commentId={c.id}
+            authorUsername={c.username}
+            textPreview={c.text.length > 60 ? `${c.text.slice(0, 60)}…` : c.text}
+            onDeleted={onAdminRemoved}
+          />
         </div>
       </div>
       {onRemove && (

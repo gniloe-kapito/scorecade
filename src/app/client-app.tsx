@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/lib/auth-context";
+import { AdminProvider } from "@/lib/admin-context";
 import { App } from "@/components/app/App";
 
 export default function ClientApp() {
@@ -41,7 +42,9 @@ export default function ClientApp() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <App />
+        <AdminProvider>
+          <App />
+        </AdminProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

@@ -45,6 +45,13 @@ import { useAuth } from "@/lib/auth-context";
 import { backOrHome, loginRedirectUrl, shareUrl, useHashRoute } from "@/lib/router";
 import { metacriticTone, timeAgo, formatDateTime, formatAverage, formatCountCompact, pluralRu } from "@/lib/format";
 import { MAX_REVIEW_LENGTH, SITE_NAME } from "@/lib/config";
+import {
+  lowScoreHint,
+  lowScoreNeedsReview,
+  lowScoreRemaining,
+  lowScoreReviewOk,
+} from "@/lib/low-score";
+import { AdminDeleteReviewButton } from "@/components/app/AdminReviewActions";
 import { ScorePicker } from "@/components/app/ScorePicker";
 import { StatusPicker } from "@/components/app/StatusPicker";
 import { GameCover } from "@/components/app/GameCover";
@@ -303,6 +310,8 @@ export function GameView({ id }: { id: string }) {
 
   const handleScoreChange = useCallback((n: number) => {
     setLiveScore(n);
+    // Низкая оценка (0–4) требует отзыв: сразу раскрываем поле отзыва.
+    if (lowScoreNeedsReview(n)) setReviewOpen(true);
   }, []);
 
   // The score currently selected in the dialog (button grid), falling
@@ -312,6 +321,9 @@ export function GameView({ id }: { id: string }) {
   /** Explicit save — the picker never saves on its own (customer rule). */
   const submitScore = useCallback(() => {
     if (selectedScore === null) return;
+    // Оценка 0–4 без достаточного отзыва не сохраняется — кнопка
+    // заблокирована, но подстрахуемся и здесь.
+    if (!lowScoreReviewOk(selectedScore, reviewDraft)) return;
     void persist(selectedScore, reviewDraft.trim() ? reviewDraft.trim() : null);
   }, [persist, selectedScore, reviewDraft]);
 
@@ -331,7 +343,9 @@ export function GameView({ id }: { id: string }) {
     if (reviewDebounceRef.current) clearTimeout(reviewDebounceRef.current);
     reviewDebounceRef.current = setTimeout(() => {
       reviewDebounceRef.current = null;
-      if (user && myRating) {
+      // Автосохранение отзыва — только если текущая оценка не нарушает
+      // правило «0–4 требует отзыв» (иначе сервер ответит 400).
+      if (user && myRating && lowScoreReviewOk(myRating.score, trimmed)) {
         void persist(myRating.score, trimmed.trim() ? trimmed.trim() : null);
       }
     }, 800);
@@ -689,10 +703,10 @@ export function GameView({ id }: { id: string }) {
       )}
 
       {/* Friends' ratings */}
-      <FriendsRatings gameId={id} focusReview={reviewFocus} />
+      <FriendsRatings gameId={id} gameName={game?.name} focusReview={reviewFocus} />
 
       {/* Community ratings */}
-      <CommunityRatings gameId={id} focusReview={reviewFocus} />
+      <CommunityRatings gameId={id} gameName={game?.name} focusReview={reviewFocus} />
 
       {/* ---- Rating dialog: wheel + review + same-score carousel ---- */}
       <Dialog
@@ -721,11 +735,33 @@ export function GameView({ id }: { id: string }) {
             className="mt-1"
           />
 
+          {/* Подсказка о правиле низкой оценки — над кнопкой */}
+          {user && lowScoreNeedsReview(selectedScore) && (
+            <p
+              className={cn(
+                "mt-2 rounded-lg border px-3 py-2 text-[11px] font-semibold leading-relaxed",
+                lowScoreReviewOk(selectedScore, reviewDraft)
+                  ? "border-border bg-secondary/50 text-muted-foreground"
+                  : "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+              )}
+            >
+              {lowScoreHint()}
+              {!lowScoreReviewOk(selectedScore, reviewDraft) && (
+                <> — осталось {lowScoreRemaining(reviewDraft)}</>
+              )}
+            </p>
+          )}
+
           {/* Explicit save button — the picker only selects, never saves */}
           <Button
             type="button"
             onClick={submitScore}
-            disabled={!user || saveState === "saving" || selectedScore === null}
+            disabled={
+              !user ||
+              saveState === "saving" ||
+              selectedScore === null ||
+              !lowScoreReviewOk(selectedScore, reviewDraft)
+            }
             className="mt-2 h-11 w-full gap-2 text-sm font-bold"
           >
             {saveState === "saving" ? (
@@ -737,7 +773,10 @@ export function GameView({ id }: { id: string }) {
               ? "Сохраняем…"
               : selectedScore === null
                 ? "Выберите оценку"
-                : `Оценить: ${selectedScore}`}
+                : lowScoreNeedsReview(selectedScore) &&
+                    !lowScoreReviewOk(selectedScore, reviewDraft)
+                  ? "Сначала напишите отзыв"
+                  : `Оценить: ${selectedScore}`}
           </Button>
 
           {/* Review */}
@@ -751,6 +790,11 @@ export function GameView({ id }: { id: string }) {
                 >
                   <MessageSquareText className="h-3.5 w-3.5" aria-hidden />
                   {myRating?.review ? "Отзыв" : "Добавить отзыв"}
+                  {lowScoreNeedsReview(selectedScore) && (
+                    <span className="font-bold text-amber-600 dark:text-amber-400">
+                      · обязательно
+                    </span>
+                  )}
                 </button>
               ) : (
                 <div className="animate-fade-in">
@@ -762,13 +806,30 @@ export function GameView({ id }: { id: string }) {
                     value={reviewDraft}
                     onChange={(e) => handleReviewChange(e.target.value)}
                     rows={2}
-                    placeholder="Пара слов об игре — их увидят ваши друзья"
+                    placeholder={
+                      lowScoreNeedsReview(selectedScore)
+                        ? "Чем не понравилась игра? Расскажите — это обязательно при низкой оценке"
+                        : "Пара слов об игре — их увидят ваши друзья"
+                    }
                     className="w-full resize-none rounded-xl border border-input bg-background/70 px-3 py-2 text-sm outline-none transition-all placeholder:text-muted-foreground/60 focus:border-primary/60 focus:ring-2 focus:ring-primary/15"
                   />
-                  <div className="mt-1 flex items-center justify-between">
-                    <p className="text-[11px] text-muted-foreground">
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <p
+                      className={cn(
+                        "text-[11px] text-muted-foreground",
+                        lowScoreNeedsReview(selectedScore) &&
+                          !lowScoreReviewOk(selectedScore, reviewDraft) &&
+                          "font-bold text-amber-600 dark:text-amber-400",
+                      )}
+                    >
                       {reviewDraft.length}/{MAX_REVIEW_LENGTH} ·{" "}
-                      {myRating ? "сохранится автоматически" : "сохранится вместе с оценкой"}
+                      {lowScoreNeedsReview(selectedScore)
+                        ? lowScoreReviewOk(selectedScore, reviewDraft)
+                          ? "отзыв готов"
+                          : `осталось ${lowScoreRemaining(reviewDraft)}`
+                        : myRating
+                          ? "сохранится автоматически"
+                          : "сохранится вместе с оценкой"}
                     </p>
                     <button
                       type="button"
@@ -1219,9 +1280,11 @@ function Screenshots({ game }: { game: Game }) {
  *  expands and scrolls to that friend's thread. */
 function FriendsRatings({
   gameId,
+  gameName,
   focusReview,
 }: {
   gameId: string;
+  gameName?: string;
   focusReview: string | null;
 }) {
   const { user, ready } = useAuth();
@@ -1321,6 +1384,13 @@ function FriendsRatings({
                     initialOpen={focused}
                   />
                 )}
+                {/* Удалить отзыв (админ) — виден только в админ-режиме */}
+                <AdminDeleteReviewButton
+                  targetUsername={f.username}
+                  gameId={gameId}
+                  gameName={gameName ?? gameId}
+                  className="mt-1"
+                />
               </div>
               <ScoreBadge score={f.score} />
             </li>
@@ -1338,9 +1408,11 @@ function FriendsRatings({
  *  pages) until the row is found. */
 function CommunityRatings({
   gameId,
+  gameName,
   focusReview,
 }: {
   gameId: string;
+  gameName?: string;
   focusReview: string | null;
 }) {
   const { user } = useAuth();
@@ -1524,6 +1596,13 @@ function CommunityRatings({
                       initialOpen={focused}
                     />
                   )}
+                  {/* Удалить отзыв (админ) — виден только в админ-режиме */}
+                  <AdminDeleteReviewButton
+                    targetUsername={item.username}
+                    gameId={gameId}
+                    gameName={gameName ?? gameId}
+                    className="mt-1"
+                  />
                 </div>
                 <ScoreBadge score={item.score} />
               </li>

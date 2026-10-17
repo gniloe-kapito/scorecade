@@ -10,10 +10,13 @@ import {
   Gamepad2,
   History,
   ImagePlus,
+  KeyRound,
   Loader2,
   LogOut,
   PenLine,
   Share2,
+  Shield,
+  ShieldCheck,
   Star,
   TrendingDown,
   TrendingUp,
@@ -24,8 +27,12 @@ import {
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
+import { useAdminMode } from "@/lib/admin-context";
+import { useAdmins } from "@/hooks/use-admins";
 import { useCountUp } from "@/hooks/use-count-up";
 import { ImageCropDialog } from "@/components/app/ImageCropDialog";
+import { AdminConfirmDialog } from "@/components/app/AdminConfirmDialog";
+import { AdminDeleteReviewButton } from "@/components/app/AdminReviewActions";
 import { formatAverage, formatDate, formatDateTime, pluralRu, timeAgo } from "@/lib/format";
 import { SITE_NAME } from "@/lib/config";
 import { shareUrl } from "@/lib/router";
@@ -41,6 +48,12 @@ import { EmptyState } from "@/components/app/EmptyState";
 import { ListSkeleton } from "@/components/app/Skeletons";
 import { FriendsFeed } from "@/components/app/views/FeedView";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type { AuthUser, ProfileResponse } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -66,13 +79,26 @@ export function ProfileView({
   username: string;
   isMe?: boolean;
 }) {
-  const { logout, updateUser } = useAuth();
+  const { user: me, logout, updateUser } = useAuth();
   const queryClient = useQueryClient();
+  const { admin, enter, exit, adminApi } = useAdminMode();
+  const { adminNames, badgeVisible } = useAdmins();
   const [filter, setFilter] = useState<"all" | number>("all");
   const [sort, setSort] = useState<SortKey>("new");
   const [tab, setTab] = useState<"ratings" | "wants">("ratings");
   // Верхняя вкладка профиля: «Профиль» / «Друзья» (только для своего). 
   const [mainTab, setMainTab] = useState<"overview" | "friends">("overview");
+
+  // ---- админ-режим: PIN-вход и смена пароля пользователя ----
+  const [pinOpen, setPinOpen] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinBusy, setPinBusy] = useState(false);
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [pwOpen, setPwOpen] = useState(false);
+  const [pw1, setPw1] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [pwError, setPwError] = useState<string | null>(null);
+  const [pwConfirmOpen, setPwConfirmOpen] = useState(false);
 
   // ---- avatar / banner uploads (kappa.lol, own profile only) ----
   const [picBusy, setPicBusy] = useState<PictureType | null>(null);
@@ -147,6 +173,77 @@ export function ProfileView({
     [ratings],
   );
 
+  // Плавный переход к списку оценок по клику на плитку «N оценок».
+  const ratingsSectionRef = useRef<HTMLElement | null>(null);
+  const [pendingScroll, setPendingScroll] = useState(0);
+
+  /** Клик по плитке «оценок»: переключить вкладки/фильтр и прокрутить
+   *  к списку оценок (с учётом prefers-reduced-motion). Работает и при
+   *  нуле оценок — прокручивает к пустому состоянию. */
+  const showRatings = () => {
+    setFilter("all");
+    setTab("ratings");
+    if (isMe) setMainTab("overview");
+    setPendingScroll((n) => n + 1);
+  };
+
+  useEffect(() => {
+    if (pendingScroll === 0) return;
+    const el = ratingsSectionRef.current;
+    if (!el) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({
+      behavior: reduced ? "auto" : "smooth",
+      block: "start",
+    });
+    setPendingScroll(0);
+  }, [pendingScroll]);
+
+  /** Вход в админ-режим по PIN. */
+  const submitPin = async () => {
+    if (pinBusy) return;
+    setPinBusy(true);
+    setPinError(null);
+    try {
+      await enter(pin);
+      setPinOpen(false);
+      setPin("");
+      toast("Админ-режим включён — 30 минут");
+    } catch (err) {
+      setPinError(
+        err instanceof ApiError ? err.message : "Не получилось. Попробуйте ещё раз.",
+      );
+    } finally {
+      setPinBusy(false);
+    }
+  };
+
+  /** Открыть смену пароля (после сбора паролей — 10 подтверждений). */
+  const openPasswordChange = () => {
+    if (pw1.length < 8 || pw1 !== pw2) {
+      setPwError(
+        pw1.length < 8
+          ? "Пароль должен быть не короче 8 символов."
+          : "Пароли не совпадают.",
+      );
+      return;
+    }
+    setPwError(null);
+    setPwOpen(false);
+    setPwConfirmOpen(true);
+  };
+
+  const changeUserPassword = async () => {
+    await adminApi(`/api/admin/users/${encodeURIComponent(username)}/password`, {
+      method: "POST",
+      body: { newPassword: pw1 },
+    });
+    setPwConfirmOpen(false);
+    setPw1("");
+    setPw2("");
+    toast.success(`Пароль пользователя ${username} изменён`);
+  };
+
   if (profileQuery.isLoading) {
     return (
       <div className="py-6">
@@ -175,6 +272,10 @@ export function ProfileView({
   }
 
   const user = data.user;
+
+  // Отметка администратора для ЭТОГО профиля (красный ник + значок).
+  const profileIsAdmin =
+    badgeVisible && adminNames.has(user.username.toLowerCase());
 
   /** Apply a freshly uploaded/removed picture everywhere it is cached. */
   const applyPictureUser = (next: AuthUser) => {
@@ -322,6 +423,34 @@ export function ProfileView({
               <Share2 className="h-4 w-4" aria-hidden />
               <span className="hidden sm:inline">Поделиться</span>
             </Button>
+            {/* Кнопка админ-режима — только у администратора */}
+            {!!me?.isAdmin &&
+              (admin ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => void exit()}
+                  aria-label="Выйти из админ-режима"
+                >
+                  <ShieldCheck className="h-4 w-4 text-amber-500" aria-hidden />
+                  Выйти из админ-режима
+                </Button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setPin("");
+                    setPinError(null);
+                    setPinOpen(true);
+                  }}
+                  aria-label="Войти в админ-режим"
+                >
+                  <Shield className="h-4 w-4" aria-hidden />
+                  <span className="hidden sm:inline">Админ-режим</span>
+                  <span className="sm:hidden">Админ</span>
+                </Button>
+              ))}
             <Button
               variant="secondary"
               size="sm"
@@ -454,9 +583,22 @@ export function ProfileView({
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="truncate text-xl font-bold tracking-tight sm:text-2xl">
+                <h2
+                  className={cn(
+                    "truncate text-xl font-bold tracking-tight sm:text-2xl",
+                    profileIsAdmin && "admin-name",
+                  )}
+                >
                   {user.username}
                 </h2>
+                {/* Отметка администратора — видна всем, даже когда
+                    админ-режим выключен (пока не скрыта переключателем). */}
+                {profileIsAdmin && (
+                  <span className="admin-badge inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold">
+                    <Shield className="h-3 w-3" aria-hidden />
+                    Админ
+                  </span>
+                )}
                 {isMe && (
                   <span className="rounded-full border border-primary/40 bg-primary/15 px-2.5 py-0.5 text-[11px] font-bold text-primary">
                     это вы
@@ -475,6 +617,8 @@ export function ProfileView({
               label={pluralRu(user.stats.count, "оценка", "оценки", "оценок")}
               value={String(user.stats.count)}
               icon={Gamepad2}
+              onClick={showRatings}
+              ariaLabel={`Показать оценки ${user.username}: ${user.stats.count}`}
             />
             <StatCard
               label="средняя"
@@ -499,6 +643,41 @@ export function ProfileView({
           </div>
         </div>
       </section>
+
+      {/* Блок «Админ» — на странице любого профиля, пока включён
+          админ-режим (смена пароля без знания старого). */}
+      {admin && (
+        <section
+          aria-label="Админ"
+          className="mt-4 rounded-[10px] border border-amber-500/40 bg-amber-500/10 p-4"
+        >
+          <h2 className="flex items-center gap-1.5 text-sm font-bold">
+            <ShieldCheck className="h-4 w-4 text-amber-500" aria-hidden />
+            Админ
+          </h2>
+          {isMe ? (
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Свой пароль меняется в настройках профиля.
+            </p>
+          ) : (
+            <div className="mt-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setPw1("");
+                  setPw2("");
+                  setPwError(null);
+                  setPwOpen(true);
+                }}
+              >
+                <KeyRound className="h-4 w-4" aria-hidden />
+                Сменить пароль пользователю
+              </Button>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Hidden file pickers (own profile only) */}
       {isMe && (
@@ -542,6 +721,155 @@ export function ProfileView({
           />
         </>
       )}
+
+      {/* ---- Диалог входа в админ-режим по PIN ---- */}
+      <Dialog
+        open={pinOpen}
+        onOpenChange={(open) => {
+          setPinOpen(open);
+          if (!open) {
+            setPin("");
+            setPinError(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-sm border-border bg-card/95">
+          <DialogTitle className="flex items-center gap-2 text-base font-extrabold">
+            <Shield className="h-5 w-5 text-amber-500" aria-hidden />
+            Вход в админ-режим
+          </DialogTitle>
+          <DialogDescription className="text-xs leading-relaxed text-muted-foreground">
+            Введите PIN администратора (4 символа). Режим действует 30 минут
+            и выключается при перезагрузке страницы.
+          </DialogDescription>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void submitPin();
+            }}
+            className="mt-2 space-y-2"
+          >
+            <label htmlFor="admin-pin-input" className="sr-only">
+              PIN администратора
+            </label>
+            <input
+              id="admin-pin-input"
+              type="password"
+              value={pin}
+              onChange={(e) => {
+                setPin(e.target.value.replace(/\D/g, "").slice(0, 4));
+                setPinError(null);
+              }}
+              maxLength={4}
+              autoComplete="off"
+              inputMode="numeric"
+              placeholder="••••"
+              autoFocus
+              className="h-11 w-full rounded-md border border-[var(--input)] bg-background px-3 text-center text-lg font-extrabold tracking-[0.4em] outline-none transition-colors focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/20"
+            />
+            {pinError && (
+              <p role="alert" className="text-xs font-semibold text-destructive">
+                {pinError}
+              </p>
+            )}
+            <Button
+              type="submit"
+              disabled={pin.length !== 4 || pinBusy}
+              className="h-10 w-full font-bold"
+            >
+              {pinBusy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
+              {pinBusy ? "Проверяем…" : "Войти в админ-режим"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ---- Диалог смены пароля пользователю (админ) ---- */}
+      <Dialog
+        open={pwOpen}
+        onOpenChange={(open) => {
+          setPwOpen(open);
+          if (!open) {
+            setPw1("");
+            setPw2("");
+            setPwError(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-sm border-border bg-card/95">
+          <DialogTitle className="flex items-center gap-2 text-base font-extrabold">
+            <KeyRound className="h-5 w-5 text-amber-500" aria-hidden />
+            Пароль для {username}
+          </DialogTitle>
+          <DialogDescription className="text-xs leading-relaxed text-muted-foreground">
+            Новый пароль пользователь сможет использовать при следующем
+            входе. Все его текущие сессии будут завершены.
+          </DialogDescription>
+          <div className="mt-2 space-y-2">
+            <label htmlFor="admin-pw-1" className="sr-only">
+              Новый пароль
+            </label>
+            <input
+              id="admin-pw-1"
+              type="password"
+              value={pw1}
+              onChange={(e) => {
+                setPw1(e.target.value);
+                setPwError(null);
+              }}
+              autoComplete="new-password"
+              placeholder="Новый пароль (минимум 8 символов)"
+              className="h-10 w-full rounded-md border border-[var(--input)] bg-background px-3 text-sm outline-none transition-colors focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/20"
+            />
+            <label htmlFor="admin-pw-2" className="sr-only">
+              Повторите новый пароль
+            </label>
+            <input
+              id="admin-pw-2"
+              type="password"
+              value={pw2}
+              onChange={(e) => {
+                setPw2(e.target.value);
+                setPwError(null);
+              }}
+              autoComplete="new-password"
+              placeholder="Повторите пароль"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") openPasswordChange();
+              }}
+              className="h-10 w-full rounded-md border border-[var(--input)] bg-background px-3 text-sm outline-none transition-colors focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/20"
+            />
+            {pwError && (
+              <p role="alert" className="text-xs font-semibold text-destructive">
+                {pwError}
+              </p>
+            )}
+            <Button
+              onClick={openPasswordChange}
+              disabled={pw1.length < 8 || pw1 !== pw2}
+              className="h-10 w-full font-bold"
+            >
+              Продолжить → 10 подтверждений
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ---- 10 подтверждений смены пароля ---- */}
+      <AdminConfirmDialog
+        open={pwConfirmOpen}
+        title="Сменить пароль пользователю"
+        details={[
+          `Пользователь: ${username}`,
+          "Все его сессии будут завершены, потребуется вход с новым паролем.",
+        ]}
+        finalInput={{
+          label: `Ник пользователя без ошибок: ${username}`,
+          expected: username,
+        }}
+        onConfirm={changeUserPassword}
+        onCancel={() => setPwConfirmOpen(false)}
+      />
 
       {/* Верхние вкладки: Профиль / Друзья (только для своего профиля) */}
       {isMe && (
@@ -847,7 +1175,11 @@ export function ProfileView({
       )}
 
       {/* Ratings list */}
-      <section aria-label="Оценки пользователя" className="mt-4">
+      <section
+        ref={ratingsSectionRef}
+        aria-label="Оценки пользователя"
+        className="mt-4 scroll-mt-24"
+      >
         {sorted.length === 0 ? (
           <EmptyState
             icon={Gamepad2}
@@ -931,6 +1263,14 @@ export function ProfileView({
                       className="mt-0"
                     />
                   )}
+                  {/* Удалить отзыв (админ) — только в админ-режиме,
+                      не на своих оценках (компонент сам скрывается). */}
+                  <AdminDeleteReviewButton
+                    targetUsername={user.username}
+                    gameId={r.gameId}
+                    gameName={r.gameName}
+                    className="mt-1"
+                  />
                 </div>
               </li>
             ))}
@@ -1189,12 +1529,14 @@ function ProfileTabButton({
 }
 
 /** Карточка статистики (референс v3, profile-stat): крупное число,
- *  мелкая подпись, тихая иконка; числа «накручиваются» при появлении. */
+ *  мелкая подпись, тихая иконка; числа «накручиваются» при появлении.
+ *  Ссылка (href), кнопка (onClick) или просто плитка. */
 function StatCard({
   label,
   value,
   icon: Icon,
   href,
+  onClick,
   ariaLabel,
   plain,
 }: {
@@ -1202,6 +1544,8 @@ function StatCard({
   value: string;
   icon: ComponentType<{ className?: string; "aria-hidden"?: boolean | "true" }>;
   href?: string;
+  /** Кликабельная плитка (например, «N оценок» → список оценок). */
+  onClick?: () => void;
   ariaLabel?: string;
   /** Без анимации счётчика (например, для нецелых средних). */
   plain?: boolean;
@@ -1232,6 +1576,21 @@ function StatCard({
       <a href={href} aria-label={ariaLabel ?? label} className={base}>
         {body}
       </a>
+    );
+  }
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={ariaLabel ?? label}
+        className={cn(
+          base,
+          "w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        )}
+      >
+        {body}
+      </button>
     );
   }
   return <div className={base}>{body}</div>;

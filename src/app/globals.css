@@ -97,6 +97,9 @@
   --line-strong: #4a4d47;
   --primary-soft: #383025;
   --primary-hover: #ddbd94;
+  /* Отметка администратора: красный ник + значок «Админ».
+     Отдельная переменная для светлых и тёмных тем — читается на всех. */
+  --admin-red: #ff6b5e;
   --good: #9ead96;
   --bad: #d5a09a;
   --scrollbar-thumb: #3f443fd9;
@@ -1184,88 +1187,21 @@
   100% { transform: translate3d(-2%, -9%, 0) scale(1.28); opacity: 0.95; }
 }
 
-/* --- Гроза: косой дождь падает, тучи ползут, изредка бьют молнии (двойная вспышка) --- */
-[data-theme="storm"] .theme-backdrop {
+/* --- Гроза и Матрица: фон рисуется на canvas (ThemeCanvas.tsx) ---
+ *  Гроза: косой дождь тремя слоями параллакса, тучи и зигзагообразные
+ *  молнии с двойной вспышкой. Матрица: вертикальные колонки символов
+ *  с яркой головой и затухающим хвостом. Поэтому у этих тем нет
+ *  собственных .bd-* слоёв — только базовый цвет на <html>. */
+.theme-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  display: none;
+}
+[data-theme="storm"] .theme-canvas,
+[data-theme="matrix"] .theme-canvas {
   display: block;
-}
-[data-theme="storm"] .bd-1 {
-  background:
-    radial-gradient(56% 44% at 64% -10%, rgba(214, 230, 255, 0.34), transparent 66%),
-    radial-gradient(30% 24% at 30% -6%, rgba(190, 212, 244, 0.22), transparent 70%);
-  animation: storm-flash 11s linear infinite;
-}
-[data-theme="storm"] .bd-2 {
-  background: repeating-linear-gradient(
-    180deg,
-    transparent 0 9%,
-    rgba(158, 186, 216, 0.05) 9.5% 10%,
-    transparent 10.5% 25%
-  );
-  animation: storm-rain 3.6s linear infinite;
-}
-[data-theme="storm"] .bd-3 {
-  background:
-    radial-gradient(44% 38% at 16% 24%, rgba(96, 120, 156, 0.20), transparent 70%),
-    radial-gradient(38% 32% at 84% 66%, rgba(84, 108, 146, 0.18), transparent 72%);
-  animation: storm-clouds 37s ease-in-out infinite alternate;
-}
-@keyframes storm-flash {
-  0%, 70% { opacity: 0.05; }
-  72% { opacity: 0.6; }
-  74% { opacity: 0.12; }
-  76% { opacity: 0.45; }
-  79% { opacity: 0.1; }
-  82%, 100% { opacity: 0.05; }
-}
-@keyframes storm-rain {
-  0% { transform: translate3d(0, 0, 0); }
-  100% { transform: translate3d(0, 25%, 0); }
-}
-@keyframes storm-clouds {
-  0% { transform: translate3d(-3%, 2%, 0) scale(1.04) rotate(-1deg); opacity: 0.7; }
-  50% { transform: translate3d(3%, -2%, 0) scale(1.16) rotate(1deg); opacity: 1; }
-  100% { transform: translate3d(-2%, 3%, 0) scale(1.08) rotate(-0.5deg); opacity: 0.8; }
-}
-
-/* --- Матрица: зелёное свечение дышит, цифровой дождь струится двумя потоками --- */
-[data-theme="matrix"] .theme-backdrop {
-  display: block;
-}
-[data-theme="matrix"] .bd-1 {
-  background:
-    radial-gradient(52% 42% at 50% 30%, rgba(125, 217, 119, 0.10), transparent 70%),
-    radial-gradient(40% 34% at 50% 108%, rgba(100, 190, 96, 0.10), transparent 72%);
-  animation: matrix-glow 10s ease-in-out infinite alternate;
-}
-[data-theme="matrix"] .bd-2 {
-  background: repeating-linear-gradient(
-    180deg,
-    transparent 0 6%,
-    rgba(125, 217, 119, 0.06) 6.5% 7.5%,
-    transparent 8% 14%
-  );
-  animation: matrix-rain-a 2.4s linear infinite;
-}
-[data-theme="matrix"] .bd-3 {
-  background: repeating-linear-gradient(
-    180deg,
-    transparent 0 10%,
-    rgba(163, 201, 143, 0.05) 10.5% 11%,
-    transparent 11.5% 23%
-  );
-  animation: matrix-rain-b 4.1s linear infinite;
-}
-@keyframes matrix-glow {
-  0% { transform: scale(1); opacity: 0.7; }
-  100% { transform: scale(1.18); opacity: 1; }
-}
-@keyframes matrix-rain-a {
-  0% { transform: translate3d(0, 0, 0); }
-  100% { transform: translate3d(0, 14%, 0); }
-}
-@keyframes matrix-rain-b {
-  0% { transform: translate3d(0, 0, 0); }
-  100% { transform: translate3d(0, 23%, 0); }
 }
 
 /* --- Закат: солнце садится в персиковое небо, облака плывут, лиловая дымка тает --- */
@@ -2293,6 +2229,28 @@ button:hover > .brand-mark {
   border-radius: 0.625rem;
   margin: 0.75em 0;
   border: 1px solid var(--border);
+}
+
+/* ---------- Отметка администратора ----------
+   Светлые темы перекрывают --admin-red на тёмно-красный (тёмные
+   наследуют #ff6b5e из :root). Классы используются в UserLink и шапке
+   профиля; перекрывают и hover-цвет, чтобы ник оставался красным. */
+[data-theme="soft"],
+[data-theme="sakura"],
+[data-theme="sunset"],
+[data-theme="lavender"],
+[data-theme="meadow"] {
+  --admin-red: #b3261e;
+}
+.admin-name,
+.admin-name:hover,
+.admin-name:focus-visible {
+  color: var(--admin-red);
+}
+.admin-badge {
+  color: var(--admin-red);
+  border: 1px solid color-mix(in srgb, var(--admin-red) 45%, transparent);
+  background: color-mix(in srgb, var(--admin-red) 12%, transparent);
 }
 
 /* ---------- accessibility: reduced motion ---------- */

@@ -21,6 +21,12 @@ import {
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
+import {
+  lowScoreHint,
+  lowScoreNeedsReview,
+  lowScoreRemaining,
+  lowScoreReviewOk,
+} from "@/lib/low-score";
 import { formatAverage, formatCountCompact, pluralRu } from "@/lib/format";
 import type {
   CommunityResponse,
@@ -135,6 +141,11 @@ function ModalBody({ id }: { id: string }) {
     setReviewOpen(!!myRating?.review);
   }
 
+  // Низкая оценка (0–4) требует отзыв — поле отзыва всегда раскрыто.
+  useEffect(() => {
+    if (score !== null && lowScoreNeedsReview(score)) setReviewOpen(true);
+  }, [score]);
+
   useEffect(() => {
     // Сброс при закрытии/смене игры происходит через key={id} (remount).
     if (game) document.title = `${game.name} — Scorecade`;
@@ -218,6 +229,13 @@ function ModalBody({ id }: { id: string }) {
     if (!user || !game) return;
     if (score === null) {
       setError("Сначала выберите оценку от 1 до 10.");
+      return;
+    }
+    // Оценка 0–4 сохраняется только с отзывом (кнопка заблокирована,
+    // но проверим и здесь — единое поведение со страницей игры).
+    if (!lowScoreReviewOk(score, review)) {
+      setError(lowScoreHint());
+      setReviewOpen(true);
       return;
     }
     setBusy(true);
@@ -477,10 +495,32 @@ function ModalBody({ id }: { id: string }) {
               </p>
             </section>
 
+            {/* Подсказка о правиле низкой оценки — над главной кнопкой */}
+            {lowScoreNeedsReview(score) && (
+              <p
+                className={cn(
+                  "mt-3 rounded-lg border px-3 py-2 text-[11px] font-semibold leading-relaxed",
+                  lowScoreReviewOk(score, review)
+                    ? "border-border bg-secondary/50 text-muted-foreground"
+                    : "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                )}
+              >
+                {lowScoreHint()}
+                {!lowScoreReviewOk(score, review) && (
+                  <> — осталось {lowScoreRemaining(review)}</>
+                )}
+              </p>
+            )}
+
             {/* Главная кнопка (Кинопоиск: «Поставить оценку») */}
             <Button
               onClick={() => void save()}
-              disabled={busy || score === null || !dirty}
+              disabled={
+                busy ||
+                score === null ||
+                !dirty ||
+                !lowScoreReviewOk(score, review)
+              }
               className="mt-4 h-11 w-full rounded-full text-[15px] font-extrabold"
             >
               {busy ? (
@@ -534,8 +574,15 @@ function ModalBody({ id }: { id: string }) {
                   {review.trim()
                     ? "Отзыв написан — редактировать"
                     : "Добавить отзыв"}
-                  <span className="font-normal text-muted-foreground">
-                    необязательно
+                  <span
+                    className={cn(
+                      "font-normal",
+                      lowScoreNeedsReview(score)
+                        ? "font-bold text-amber-600 dark:text-amber-400"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {lowScoreNeedsReview(score) ? "обязательно" : "необязательно"}
                   </span>
                 </span>
                 <ChevronDown
@@ -554,12 +601,27 @@ function ModalBody({ id }: { id: string }) {
                     onChange={(e) => setReview(e.target.value)}
                     maxLength={1000}
                     disabled={busy}
-                    placeholder="Что запомнилось? Что понравилось или не зашло? Помоги друзьям решить, стоит ли играть."
+                    placeholder={
+                      lowScoreNeedsReview(score)
+                        ? "Чем не понравилась игра? Расскажите — это обязательно при низкой оценке"
+                        : "Что запомнилось? Что понравилось или не зашло? Помоги друзьям решить, стоит ли играть."
+                    }
                     rows={3}
                     className="mt-2 w-full resize-y rounded-md border border-[var(--input)] bg-background px-3 py-2 text-sm leading-relaxed outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary disabled:opacity-60"
                   />
-                  <p className="mt-1 text-right text-[10px] text-muted-foreground">
+                  <p
+                    className={cn(
+                      "mt-1 text-right text-[10px]",
+                      lowScoreNeedsReview(score) &&
+                        !lowScoreReviewOk(score, review)
+                        ? "font-bold text-amber-600 dark:text-amber-400"
+                        : "text-muted-foreground",
+                    )}
+                  >
                     {review.length}/1000
+                    {lowScoreNeedsReview(score) &&
+                      !lowScoreReviewOk(score, review) &&
+                      ` · осталось ${lowScoreRemaining(review)}`}
                   </p>
                 </div>
               )}
