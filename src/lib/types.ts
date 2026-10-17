@@ -198,6 +198,10 @@ export interface AuthUser {
   username: string;
   avatarUrl: string | null;
   bannerUrl: string | null;
+  /** Права администратора (таблица admins) — приходит из /api/me,
+   *  входа/регистрации и загрузки картинок. Отсутствует в старых
+   *  ответах — трактуется как false. */
+  isAdmin?: boolean;
 }
 
 export interface FriendRating {

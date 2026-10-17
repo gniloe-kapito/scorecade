@@ -58,6 +58,10 @@ export function setToken(token: string | null): void {
 interface ApiOptions {
   method?: string;
   body?: unknown; // JSON value or FormData (multipart upload)
+  /** Дополнительные заголовки (например, X-Admin-Token для админ-режима). */
+  headers?: Record<string, string>;
+  /** Режим HTTP-кэша fetch (например, "no-cache" — сверяться с сервером). */
+  cache?: RequestCache;
 }
 
 /** JSON/multipart fetch wrapper with bearer auth and friendly error messages. */
@@ -72,7 +76,7 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
     );
   }
 
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { ...(opts.headers ?? {}) };
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
   const isForm =
@@ -86,6 +90,7 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
     res = await fetch(`${base}${path}`, {
       method: opts.method ?? "GET",
       headers,
+      cache: opts.cache,
       body:
         opts.body !== undefined
           ? isForm
