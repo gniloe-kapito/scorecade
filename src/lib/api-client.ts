@@ -21,6 +21,14 @@ export function apiBaseUrl(): string {
   return url.replace(/\/+$/, "");
 }
 
+/** true, если адрес API не настроен, а сайт открыт не на localhost.
+ * На localhost пустой адрес — норма (dev-версия на одном сервере). */
+export function isApiUnconfigured(): boolean {
+  if (typeof window === "undefined") return false;
+  if (apiBaseUrl() !== "") return false;
+  return !/^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(window.location.host);
+}
+
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -54,6 +62,16 @@ interface ApiOptions {
 
 /** JSON/multipart fetch wrapper with bearer auth and friendly error messages. */
 export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
+  const base = apiBaseUrl();
+  // Незаполненный config.js на проде: без этой проверки запросы уходили бы
+  // на сам GitHub Pages и молча падали в 404. Подсказываем, что настроить.
+  if (base === "" && isApiUnconfigured()) {
+    throw new ApiError(
+      "Бэкенд не настроен: впишите адрес API в public/config.js",
+      0,
+    );
+  }
+
   const headers: Record<string, string> = {};
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -65,7 +83,7 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
 
   let res: Response;
   try {
-    res = await fetch(`${apiBaseUrl()}${path}`, {
+    res = await fetch(`${base}${path}`, {
       method: opts.method ?? "GET",
       headers,
       body:

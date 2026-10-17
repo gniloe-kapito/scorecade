@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   UserRound,
 } from "lucide-react";
-import { api, ApiError } from "@/lib/api-client";
+import { api, ApiError, setToken } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { SITE_NAME } from "@/lib/config";
 import { THEMES, useAppTheme, type ThemeId } from "@/lib/theme";
@@ -295,11 +295,20 @@ function PasswordSection() {
     }
     setBusy(true);
     try {
-      await api("/api/me/password", {
-        method: "POST",
-        body: { currentPassword, newPassword },
-      });
-      toast.success("Пароль изменён. Сессии на других устройствах остались активными.");
+      // После смены пароля бэкенд аннулирует все прежние сессии и
+      // выдаёт новый токен для этого устройства — сохраняем его, чтобы
+      // пользователь не вылетел из аккаунта прямо здесь.
+      const res = await api<{ ok: boolean; token: string }>(
+        "/api/me/password",
+        {
+          method: "POST",
+          body: { currentPassword, newPassword },
+        },
+      );
+      if (res.token) setToken(res.token);
+      toast.success(
+        "Пароль изменён. На других устройствах придётся войти заново.",
+      );
       setCurrentPassword("");
       setNewPassword("");
       setRepeatPassword("");
@@ -323,7 +332,8 @@ function PasswordSection() {
       </h2>
       <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
         Восстановления по почте у нас нет — пароль храните надёжно. Новый пароль
-        хэшируется свежей солью; вход на этом устройстве сохраняется.
+        хэшируется свежей солью; вход на этом устройстве сохраняется, а на
+        остальных устройствах придётся войти заново.
       </p>
       <form onSubmit={onSubmit} className="mt-5 space-y-4">
         <div className="space-y-2">

@@ -42,7 +42,7 @@ import {
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
-import { backOrHome, loginRedirectUrl, useHashRoute } from "@/lib/router";
+import { backOrHome, loginRedirectUrl, shareUrl, useHashRoute } from "@/lib/router";
 import { metacriticTone, timeAgo, formatDateTime, formatAverage, formatCountCompact, pluralRu } from "@/lib/format";
 import { MAX_REVIEW_LENGTH, SITE_NAME } from "@/lib/config";
 import { ScorePicker } from "@/components/app/ScorePicker";
@@ -423,8 +423,9 @@ export function GameView({ id }: { id: string }) {
   // ---- share ----
   const shareGame = useCallback(async () => {
     if (!game) return;
-    // Canonical game URL — never depend on the current hash.
-    const url = `${window.location.origin}/#/game/${encodeURIComponent(id)}`;
+    // Canonical game URL — never depend on the current hash. shareUrl()
+    // adds the base path so the link works on GitHub Pages project sites.
+    const url = shareUrl(`/game/${encodeURIComponent(id)}`);
     const data = {
       title: `${game.name} — ${SITE_NAME}`,
       text: `${game.name} в ${SITE_NAME}`,

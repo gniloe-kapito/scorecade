@@ -2,9 +2,10 @@
 
 import { Component, useEffect, useRef, type ReactNode } from "react";
 import { Toaster } from "sonner";
-import { WifiOff } from "lucide-react";
+import { TriangleAlert, WifiOff } from "lucide-react";
 import { useHashRoute, isWideRoute } from "@/lib/router";
 import { useAuth } from "@/lib/auth-context";
+import { useApiUnconfigured } from "@/hooks/use-api-unconfigured";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -110,6 +111,9 @@ function GameSkeletonBlock() {
 export function App() {
   const route = useHashRoute();
   const online = useOnlineStatus();
+  // Незаполненный public/config.js на проде — показываем баннер-подсказку
+  // (значение вычисляется только на клиенте, без расхождения с SSR).
+  const apiUnconfigured = useApiUnconfigured();
 
   // Позиция прокрутки каталога/библиотеки: если ушли на страницу игры и
   // вернулись «назад» — оказываемся там же, где были, а не в самом верху.
@@ -240,11 +244,24 @@ export function App() {
         <span className="bd-layer bd-2" />
         <span className="bd-layer bd-3" />
       </div>
+      {apiUnconfigured && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed inset-x-0 top-2 z-[70] mx-auto flex w-fit max-w-[92vw] items-center gap-2 rounded-full border border-destructive/50 bg-card/95 px-4 py-2 text-center text-xs font-bold text-destructive shadow-lg backdrop-blur"
+        >
+          <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden />
+          Бэкенд не настроен: впишите адрес API в public/config.js
+        </div>
+      )}
       {!online && (
         <div
           role="status"
           aria-live="polite"
-          className="fixed inset-x-0 top-2 z-[70] mx-auto flex w-fit items-center gap-2 rounded-full border border-amber-400/50 bg-card/95 px-4 py-2 text-xs font-bold text-amber-600 shadow-lg backdrop-blur dark:border-amber-400/40 dark:text-amber-300"
+          className={cn(
+            "fixed inset-x-0 top-2 z-[70] mx-auto flex w-fit items-center gap-2 rounded-full border border-amber-400/50 bg-card/95 px-4 py-2 text-xs font-bold text-amber-600 shadow-lg backdrop-blur dark:border-amber-400/40 dark:text-amber-300",
+            apiUnconfigured && "top-14",
+          )}
         >
           <WifiOff className="h-4 w-4" aria-hidden />
           Нет соединения — офлайн-режим

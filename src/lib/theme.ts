@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 
 /** Темы оформления Scorecade: четыре спокойные из референса v3
- *  (графит, бумага, слива, мох) + шесть живых с анимированным фоном
- *  (аврора, угли, сакура, океан, неон, космос — три слоя .bd-layer
- *  в globals.css с независимыми анимациями).
+ *  (графит, бумага, слива, мох) и двенадцать живых с анимированным фоном
+ *  (аврора, угли, сакура, океан, неон, космос, магма, гроза, матрица,
+ *  закат, лаванда, луг — три слоя .bd-layer в globals.css
+ *  с независимыми анимациями).
  *  Каждая тема — один блок семантических CSS-переменных; компоненты не
  *  знают цветов напрямую. Выбор хранится в localStorage и восстанавливается
  *  до первой отрисовки (бутстрап-скрипт в layout.tsx). */
@@ -19,7 +20,13 @@ export type ThemeId =
   | "sakura"
   | "ocean"
   | "neon"
-  | "cosmos";
+  | "cosmos"
+  | "magma"
+  | "storm"
+  | "matrix"
+  | "sunset"
+  | "lavender"
+  | "meadow";
 
 export interface ThemeDef {
   id: ThemeId;
@@ -108,6 +115,54 @@ export const THEMES: readonly ThemeDef[] = [
     hint: "живая тёмная тема: мерцающие звёзды и ворочающаяся туманность",
     swatch: { bg: "#0f0d18", accent: "#b3a1e0", panel: "#161320", line: "#2f2a44" },
     dark: true,
+    animated: true,
+  },
+  {
+    id: "magma",
+    label: "Магма",
+    hint: "живая тёмная тема: раскалённые прожилины дышат под чёрным камнем",
+    swatch: { bg: "#150f0e", accent: "#e0825c", panel: "#201614", line: "#452c23" },
+    dark: true,
+    animated: true,
+  },
+  {
+    id: "storm",
+    label: "Гроза",
+    hint: "живая тёмная тема: косой дождь и редкие вспышки молний",
+    swatch: { bg: "#11141b", accent: "#8fb3d9", panel: "#181d26", line: "#2c3847" },
+    dark: true,
+    animated: true,
+  },
+  {
+    id: "matrix",
+    label: "Матрица",
+    hint: "живая тёмная тема: зелёный цифровой дождь струится по экрану",
+    swatch: { bg: "#0b110c", accent: "#7dd977", panel: "#111a13", line: "#25382a" },
+    dark: true,
+    animated: true,
+  },
+  {
+    id: "sunset",
+    label: "Закат",
+    hint: "живая светлая тема: солнце садится в персиковое небо",
+    swatch: { bg: "#f5ece4", accent: "#c97a5b", panel: "#fbf4ed", line: "#dfcec0" },
+    dark: false,
+    animated: true,
+  },
+  {
+    id: "lavender",
+    label: "Лаванда",
+    hint: "живая светлая тема: сиреневые поля плывут в разные стороны",
+    swatch: { bg: "#edeaf4", accent: "#8f7ec0", panel: "#f4f1fa", line: "#d8d2e4" },
+    dark: false,
+    animated: true,
+  },
+  {
+    id: "meadow",
+    label: "Луг",
+    hint: "живая светлая тема: солнечные пятна ползут по зелёной поляне",
+    swatch: { bg: "#e9eee2", accent: "#6f9d5c", panel: "#f0f5e9", line: "#d3ddc4" },
+    dark: false,
     animated: true,
   },
 ];

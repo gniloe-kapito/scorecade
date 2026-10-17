@@ -28,6 +28,7 @@ import { useCountUp } from "@/hooks/use-count-up";
 import { ImageCropDialog } from "@/components/app/ImageCropDialog";
 import { formatAverage, formatDate, formatDateTime, pluralRu, timeAgo } from "@/lib/format";
 import { SITE_NAME } from "@/lib/config";
+import { shareUrl } from "@/lib/router";
 import { GameCover } from "@/components/app/GameCover";
 import { LibraryMiniCard } from "@/components/app/GameCard";
 import { ScoreBadge } from "@/components/app/ScoreBadge";
@@ -267,10 +268,11 @@ export function ProfileView({
   };
 
   const shareProfile = async () => {
-    // Always share the canonical #/u/<username> link — never window.location
+    // Always share the canonical /u/<username> link — never window.location
     // (viewing your own profile via #/me would copy "#/me", which opens the
-    // RECIPIENT's own profile instead of yours).
-    const url = `${window.location.origin}/#/u/${encodeURIComponent(user.username)}`;
+    // RECIPIENT's own profile instead of yours). shareUrl() adds the base
+    // path (GitHub Pages project site) so the link stays valid there too.
+    const url = shareUrl(`/u/${encodeURIComponent(user.username)}`);
     try {
       if (navigator.share) {
         await navigator.share({

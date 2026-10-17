@@ -46,6 +46,20 @@ export function navigate(to: string): void {
   window.location.hash = to;
 }
 
+/** Базовый путь сайта, известный на момент сборки: "" локально и на домене
+ *  вида ИМЯ.github.io, "/ИМЯ-РЕПОЗИТОРИЯ" на GitHub Pages (подставляется
+ *  релизным workflow из названия репозитория). */
+export const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
+/** Абсолютная «красивая» ссылка для шаринга: origin + базовый путь + путь
+ *  приложения, например https://user.github.io/scorecade/u/ник.
+ *  Само приложение живёт на хеш-роутах (#/u/ник); при открытии красивой
+ *  ссылки статический хостинг отдаёт 404.html (app/not-found.tsx), который
+ *  мгновенно превращает путь обратно в хеш-роут. */
+export function shareUrl(path: string): string {
+  return `${window.location.origin}${BASE_PATH}${path}`;
+}
+
 export function backOrHome(): void {
   if (window.history.length > 1) window.history.back();
   else window.location.hash = "#/";
