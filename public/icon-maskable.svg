@@ -1,6 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#0d1411"/>
-  <g transform="translate(256 256)">
-    <text x="0" y="0" text-anchor="middle" dominant-baseline="central" font-family="Arial, Helvetica, sans-serif" font-size="230" font-weight="800" fill="#a6e34d">S</text>
+  <defs>
+    <linearGradient id="scArc" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0" stop-color="#8f7346"/>
+      <stop offset="0.55" stop-color="#c0a17a"/>
+      <stop offset="1" stop-color="#ecd096"/>
+    </linearGradient>
+    <linearGradient id="scS" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7efdd"/>
+      <stop offset="1" stop-color="#d8c6a2"/>
+    </linearGradient>
+    <radialGradient id="scGlow" cx="0.5" cy="0.42" r="0.55">
+      <stop offset="0" stop-color="#c0a17a" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#c0a17a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- maskable: фон на весь холст, контент в безопасной зоне 80% -->
+  <rect width="512" height="512" fill="#191b1b"/>
+  <g transform="translate(256 256) scale(0.78) translate(-256 -256)">
+    <circle cx="256" cy="236" r="238" fill="url(#scGlow)"/>
+    <path d="M 125 348 A 160 160 0 1 1 387 348" fill="none" stroke="url(#scArc)" stroke-width="30" stroke-linecap="round"/>
+    <circle cx="387" cy="348" r="23" fill="#ecd096" stroke="#191b1b" stroke-width="11"/>
+    <text x="256" y="272" text-anchor="middle" dominant-baseline="central" font-family="Arial, Helvetica, sans-serif" font-size="252" font-weight="800" fill="url(#scS)">S</text>
   </g>
 </svg>
