@@ -37,11 +37,11 @@ export default function RootLayout({
     <html lang="ru" className="dark" data-theme="graphite" suppressHydrationWarning>
       <head>
         {/* Тема из localStorage — до первой отрисовки, чтобы не мигала
-            базовая тема. Светлые темы (бумага, сакура) снимают класс dark,
-            чтобы утилиты dark: не мешали. */}
+            базовая тема. Светлые темы (бумага, сакура, закат, лаванда, луг)
+            снимают класс dark, чтобы утилиты dark: не мешали. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('scorecade_theme');var ok=['graphite','soft','plum','moss','aurora','ember','sakura','ocean','neon','cosmos'];if(!t||ok.indexOf(t)<0)t='graphite';var d=document.documentElement;d.setAttribute('data-theme',t);if(t==='soft'||t==='sakura')d.classList.remove('dark')}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('scorecade_theme');var ok=['graphite','soft','plum','moss','aurora','ember','sakura','ocean','neon','cosmos','magma','storm','matrix','sunset','lavender','meadow'];var lt=['soft','sakura','sunset','lavender','meadow'];if(!t||ok.indexOf(t)<0)t='graphite';var d=document.documentElement;d.setAttribute('data-theme',t);if(lt.indexOf(t)>=0)d.classList.remove('dark')}catch(e){}})();`,
           }}
         />
         {/* Адрес бэкенда (public/config.js) должен загрузиться до старта
