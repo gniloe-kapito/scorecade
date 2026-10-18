@@ -178,6 +178,8 @@ export interface ProfileUser {
   createdAt: string; // ISO date string
   avatarUrl: string | null; // kappa.lol link
   bannerUrl: string | null; // kappa.lol link
+  /** Аккаунт забанен админом (виден бейдж на профиле). */
+  banned?: boolean;
   stats: ProfileStats;
   followers: number;
   following: number;

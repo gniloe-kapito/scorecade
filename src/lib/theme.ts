@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 
 /** Темы оформления Scorecade: четыре спокойные из референса v3
- *  (графит, бумага, слива, мох) и двенадцать живых с анимированным фоном
- *  (аврора, угли, сакура, океан, неон, космос, магма, гроза, матрица,
- *  закат, лаванда, луг — три слоя .bd-layer в globals.css
- *  с независимыми анимациями).
+ *  (графит, бумага, слива, мох) и одиннадцать живых с анимированным
+ *  фоном на canvas (аврора, угли, сакура, океан, неон, космос, гроза,
+ *  матрица, закат, лаванда, луг — реестр рендереров
+ *  в src/lib/backdrops, компонент ThemeCanvas).
  *  Каждая тема — один блок семантических CSS-переменных; компоненты не
  *  знают цветов напрямую. Выбор хранится в localStorage и восстанавливается
  *  до первой отрисовки (бутстрап-скрипт в layout.tsx). */
@@ -21,7 +21,6 @@ export type ThemeId =
   | "ocean"
   | "neon"
   | "cosmos"
-  | "magma"
   | "storm"
   | "matrix"
   | "sunset"
@@ -72,7 +71,7 @@ export const THEMES: readonly ThemeDef[] = [
   {
     id: "aurora",
     label: "Аврора",
-    hint: "живая тёмная тема: северное сияние плывёт по небу тремя волнами",
+    hint: "живая тёмная тема: зелёные и сине-фиолетовые занавесы сияния колышутся над звёздным небом",
     swatch: { bg: "#131a1c", accent: "#82c7b0", panel: "#1a2427", line: "#31434a" },
     dark: true,
     animated: true,
@@ -80,7 +79,7 @@ export const THEMES: readonly ThemeDef[] = [
   {
     id: "ember",
     label: "Угли",
-    hint: "живая тёмная тема: жар дышит снизу, искры всплывают",
+    hint: "живая тёмная тема: жар мерцает снизу, искры всплывают и гаснут",
     swatch: { bg: "#1c1613", accent: "#dba36e", panel: "#271f19", line: "#473a2f" },
     dark: true,
     animated: true,
@@ -88,7 +87,7 @@ export const THEMES: readonly ThemeDef[] = [
   {
     id: "sakura",
     label: "Сакура",
-    hint: "живая светлая тема: розовые волны текут в разные стороны",
+    hint: "живая светлая тема: лепестки сакуры кружатся и падают на ветру",
     swatch: { bg: "#efe7ea", accent: "#b57f93", panel: "#f6eff2", line: "#dcd0d6" },
     dark: false,
     animated: true,
@@ -96,7 +95,7 @@ export const THEMES: readonly ThemeDef[] = [
   {
     id: "ocean",
     label: "Океан",
-    hint: "живая тёмная тема: в глубине медленно ходят лучи света",
+    hint: "живая тёмная тема: подводные лучи, блики на воде и поднимающиеся пузырьки",
     swatch: { bg: "#0d141a", accent: "#7cc4b8", panel: "#121c23", line: "#273a44" },
     dark: true,
     animated: true,
@@ -104,7 +103,7 @@ export const THEMES: readonly ThemeDef[] = [
   {
     id: "neon",
     label: "Неон",
-    hint: "живая тёмная тема: синтвейв — маджента и бирюза пульсируют",
+    hint: "живая тёмная тема: синтвейв, сетка уходит к горизонту под полосатым солнцем",
     swatch: { bg: "#12101b", accent: "#e07fc2", panel: "#191627", line: "#352d4d" },
     dark: true,
     animated: true,
@@ -112,16 +111,8 @@ export const THEMES: readonly ThemeDef[] = [
   {
     id: "cosmos",
     label: "Космос",
-    hint: "живая тёмная тема: мерцающие звёзды и ворочающаяся туманность",
+    hint: "живая тёмная тема: мерцающие звёзды, редкие метеоры и туманность",
     swatch: { bg: "#0f0d18", accent: "#b3a1e0", panel: "#161320", line: "#2f2a44" },
-    dark: true,
-    animated: true,
-  },
-  {
-    id: "magma",
-    label: "Магма",
-    hint: "живая тёмная тема: раскалённые прожилины дышат под чёрным камнем",
-    swatch: { bg: "#150f0e", accent: "#e0825c", panel: "#201614", line: "#452c23" },
     dark: true,
     animated: true,
   },
@@ -144,7 +135,7 @@ export const THEMES: readonly ThemeDef[] = [
   {
     id: "sunset",
     label: "Закат",
-    hint: "живая светлая тема: солнце садится в персиковое небо",
+    hint: "живая светлая тема: солнце садится среди плывущих облаков",
     swatch: { bg: "#f5ece4", accent: "#c97a5b", panel: "#fbf4ed", line: "#dfcec0" },
     dark: false,
     animated: true,
@@ -152,7 +143,7 @@ export const THEMES: readonly ThemeDef[] = [
   {
     id: "lavender",
     label: "Лаванда",
-    hint: "живая светлая тема: сиреневые поля плывут в разные стороны",
+    hint: "живая светлая тема: шёлковые сиреневые волны и мерцающие искры",
     swatch: { bg: "#edeaf4", accent: "#8f7ec0", panel: "#f4f1fa", line: "#d8d2e4" },
     dark: false,
     animated: true,
@@ -160,7 +151,7 @@ export const THEMES: readonly ThemeDef[] = [
   {
     id: "meadow",
     label: "Луг",
-    hint: "живая светлая тема: солнечные пятна ползут по зелёной поляне",
+    hint: "живая светлая тема: трава колышется на ветру под тёплым солнцем",
     swatch: { bg: "#e9eee2", accent: "#6f9d5c", panel: "#f0f5e9", line: "#d3ddc4" },
     dark: false,
     animated: true,
