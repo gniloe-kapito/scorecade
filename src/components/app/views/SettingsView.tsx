@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useState, useSyncExternalStore, type ComponentType } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -11,12 +11,21 @@ import {
   Palette,
   PenLine,
   ShieldCheck,
+  Sparkles,
   UserRound,
 } from "lucide-react";
 import { api, ApiError, setToken } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { SITE_NAME } from "@/lib/config";
 import { THEMES, useAppTheme, type ThemeId } from "@/lib/theme";
+import {
+  getMotionPref,
+  reducedMotionSnapshot,
+  setMotionPref,
+  subscribeMotion,
+  subscribeReducedMotion,
+  type MotionPref,
+} from "@/lib/motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,6 +57,7 @@ export function SettingsView() {
 
       <div className="space-y-6">
         <ThemeSection />
+        <MotionSection />
 
         {ready && !user ? (
           <section className="rounded-xl border border-border bg-card p-6 text-center">
@@ -94,10 +104,11 @@ function ThemeSection() {
         Тема оформления
       </h2>
       <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-        Четыре спокойные темы и шесть живых — с анимированным фоном, который
-        движется всё время (аврора, угли, сакура, океан, неон, космос).
-        Переключение меняет всё приложение; выбор сохраняется в этом браузере
-        и восстанавливается при входе.
+        Спокойные темы и живые — с анимированным фоном, который рисуется
+        на canvas (аврора, угли, сакура, океан, неон, космос, гроза,
+        матрица, закат, лаванда, луг). Переключение меняет всё
+        приложение; выбор сохраняется в этом браузере и восстанавливается
+        при входе.
       </p>
       <div
         role="group"
@@ -159,6 +170,116 @@ function ThemeSection() {
           );
         })}
       </div>
+    </section>
+  );
+}
+
+/* ==================== Анимация фона ==================== */
+
+const MOTION_OPTIONS: ReadonlyArray<{
+  value: MotionPref;
+  label: string;
+  hint: string;
+}> = [
+  {
+    value: "auto",
+    label: "Авто",
+    hint: "по системной настройке «меньше движения» (prefers-reduced-motion)",
+  },
+  { value: "on", label: "Включена", hint: "анимировать всегда, без исключений" },
+  {
+    value: "off",
+    label: "Выключена",
+    hint: "один статичный кадр — минимум нагрузки и расхода батареи",
+  },
+];
+
+function MotionSection() {
+  // Значение настройки и системный reduced-motion — как внешние хранилища:
+  // без «setState в эффекте», мгновенная реакция на выбор и на синхронизацию
+  // вкладок (storage-событие).
+  const pref = useSyncExternalStore(
+    subscribeMotion,
+    getMotionPref,
+    () => "auto" as MotionPref,
+  );
+  const reduced = useSyncExternalStore(
+    subscribeReducedMotion,
+    reducedMotionSnapshot,
+    () => false,
+  );
+
+  const choose = (next: MotionPref) => {
+    setMotionPref(next); // localStorage + событие для ThemeCanvas и стора
+  };
+
+  const animated = pref === "on" || (pref === "auto" && !reduced);
+
+  return (
+    <section
+      aria-label="Анимация фона"
+      className="rounded-xl border border-border bg-card p-5 md:p-6"
+    >
+      <h2 className="flex items-center gap-2 text-lg font-bold">
+        <Sparkles className="h-5 w-5 text-primary" aria-hidden />
+        Анимация фона
+      </h2>
+      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+        Живые темы рисуют движущийся фон на canvas. Если анимация мешает
+        или быстро садит батарею — прежде всего на слабых телефонах —
+        выключите её: вместо движения останется один статичный кадр,
+        тема сохранит свой характер.
+      </p>
+      <div
+        role="radiogroup"
+        aria-label="Режим анимации фона"
+        className="mt-4 grid gap-2 sm:grid-cols-3"
+      >
+        {MOTION_OPTIONS.map((opt) => {
+          const active = pref === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => choose(opt.value)}
+              className={cn(
+                "flex min-h-[44px] items-center gap-2 rounded-lg border p-3 text-left transition-colors",
+                active
+                  ? "border-primary bg-[var(--primary-soft)]"
+                  : "border-border bg-background hover:border-[var(--line-strong)]",
+              )}
+            >
+              <span
+                aria-hidden
+                className={cn(
+                  "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2",
+                  active ? "border-primary" : "border-[var(--line-strong)]",
+                )}
+              >
+                {active && (
+                  <span className="h-2.5 w-2.5 rounded-full bg-primary" />
+                )}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-bold">{opt.label}</span>
+                <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
+                  {opt.hint}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-3 text-xs font-semibold text-muted-foreground" aria-live="polite">
+        Сейчас: {animated ? "анимация идёт" : "фон статичен (один кадр)"}
+        {pref === "auto" &&
+          (reduced
+            ? " — система просит уменьшить движение"
+            : " — система не возражает против движения")}
+        .
+      </p>
     </section>
   );
 }

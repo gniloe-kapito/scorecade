@@ -41,7 +41,7 @@ export default function RootLayout({
             снимают класс dark, чтобы утилиты dark: не мешали. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('scorecade_theme');var ok=['graphite','soft','plum','moss','aurora','ember','sakura','ocean','neon','cosmos','magma','storm','matrix','sunset','lavender','meadow'];var lt=['soft','sakura','sunset','lavender','meadow'];if(!t||ok.indexOf(t)<0)t='graphite';var d=document.documentElement;d.setAttribute('data-theme',t);if(lt.indexOf(t)>=0)d.classList.remove('dark')}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('scorecade_theme');var ok=['graphite','soft','plum','moss','aurora','ember','sakura','ocean','neon','cosmos','storm','matrix','sunset','lavender','meadow'];var lt=['soft','sakura','sunset','lavender','meadow'];if(!t||ok.indexOf(t)<0)t='graphite';var d=document.documentElement;d.setAttribute('data-theme',t);if(lt.indexOf(t)>=0)d.classList.remove('dark')}catch(e){}})();`,
           }}
         />
         {/* Адрес бэкенда (public/config.js) должен загрузиться до старта

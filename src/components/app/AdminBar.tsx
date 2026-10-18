@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { LogOut, ShieldCheck, TriangleAlert } from "lucide-react";
+import { LogOut, ShieldCheck, SlidersHorizontal, TriangleAlert } from "lucide-react";
 import { useAdminMode } from "@/lib/admin-context";
 import { useAdmins, type AdminsResponse } from "@/hooks/use-admins";
 import { Button } from "@/components/ui/button";
@@ -99,6 +99,16 @@ export function AdminBar() {
             />
             Показывать значок админа всем
           </label>
+          <Button
+            asChild
+            size="sm"
+            className="h-7 border-amber-950/30 bg-amber-950/90 px-2.5 text-[11px] font-bold text-amber-50 hover:bg-amber-950"
+          >
+            <a href="#/admin">
+              <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
+              Панель
+            </a>
+          </Button>
           <Button
             size="sm"
             onClick={() => void exit()}

@@ -2,10 +2,9 @@
 
 import { Component, useEffect, useRef, type ReactNode } from "react";
 import { Toaster } from "sonner";
-import { TriangleAlert, WifiOff } from "lucide-react";
+import { WifiOff } from "lucide-react";
 import { useHashRoute, isWideRoute } from "@/lib/router";
 import { useAuth } from "@/lib/auth-context";
-import { useApiUnconfigured } from "@/hooks/use-api-unconfigured";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,6 +27,7 @@ import { LoginView, RegisterView } from "./views/AuthViews";
 import { UserListView } from "./views/UserListView";
 import { NotificationsView } from "./views/NotificationsView";
 import { SettingsView } from "./views/SettingsView";
+import { AdminView } from "./views/AdminView";
 import { NotFoundView } from "./views/NotFoundView";
 
 class RouteErrorBoundary extends Component<
@@ -113,9 +113,6 @@ function GameSkeletonBlock() {
 export function App() {
   const route = useHashRoute();
   const online = useOnlineStatus();
-  // Незаполненный public/config.js на проде — показываем баннер-подсказку
-  // (значение вычисляется только на клиенте, без расхождения с SSR).
-  const apiUnconfigured = useApiUnconfigured();
 
   // Позиция прокрутки каталога/библиотеки: если ушли на страницу игры и
   // вернулись «назад» — оказываемся там же, где были, а не в самом верху.
@@ -226,8 +223,11 @@ export function App() {
   } else if (seg[0] === "me") {
     view = <MeView />;
   } else if (seg[0] === "settings") {
-    // Настройки (#/settings): тема, никнейм, пароль.
+    // Настройки (#/settings): тема, анимация фона, никнейм, пароль.
     view = <SettingsView />;
+  } else if (seg[0] === "admin") {
+    // Панель администратора (#/admin): пользователи, баны, ники, пароли.
+    view = <AdminView />;
   } else if (seg[0] === "login") {
     view = <LoginView from={route.query.get("from")} />;
   } else if (seg[0] === "register") {
@@ -241,35 +241,17 @@ export function App() {
       {/* Плашка админ-режима: на всех страницах, сверху (цвет
           предупреждения — не зависит от темы). */}
       <AdminBar />
-      {/* Живой фон анимированных тем (аврора/угли/сакура/океан/неон/космос):
-          три независимых слоя с собственными анимациями — под контентом,
-          базовый цвет при этом живёт на <html> (см. globals.css).
-          Темы «Гроза» и «Матрица» рисуются на canvas (ThemeCanvas) —
-          у них собственных CSS-слоев нет. */}
+      {/* Живой фон анимированных тем — под контентом, базовый цвет
+          живёт на <html>. Все 11 живых тем рисуются на canvas
+          (ThemeCanvas + реестр src/lib/backdrops). */}
       <div className="theme-backdrop" aria-hidden>
-        <span className="bd-layer bd-1" />
-        <span className="bd-layer bd-2" />
-        <span className="bd-layer bd-3" />
+        <ThemeCanvas />
       </div>
-      <ThemeCanvas />
-      {apiUnconfigured && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed inset-x-0 top-2 z-[70] mx-auto flex w-fit max-w-[92vw] items-center gap-2 rounded-full border border-destructive/50 bg-card/95 px-4 py-2 text-center text-xs font-bold text-destructive shadow-lg backdrop-blur"
-        >
-          <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden />
-          Бэкенд не настроен: впишите адрес API в public/config.js
-        </div>
-      )}
       {!online && (
         <div
           role="status"
           aria-live="polite"
-          className={cn(
-            "fixed inset-x-0 top-2 z-[70] mx-auto flex w-fit items-center gap-2 rounded-full border border-amber-400/50 bg-card/95 px-4 py-2 text-xs font-bold text-amber-600 shadow-lg backdrop-blur dark:border-amber-400/40 dark:text-amber-300",
-            apiUnconfigured && "top-14",
-          )}
+          className="fixed inset-x-0 top-2 z-[70] mx-auto flex w-fit items-center gap-2 rounded-full border border-amber-400/50 bg-card/95 px-4 py-2 text-xs font-bold text-amber-600 shadow-lg backdrop-blur dark:border-amber-400/40 dark:text-amber-300"
         >
           <WifiOff className="h-4 w-4" aria-hidden />
           Нет соединения — офлайн-режим

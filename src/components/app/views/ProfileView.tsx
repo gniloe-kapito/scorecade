@@ -10,13 +10,14 @@ import {
   Gamepad2,
   History,
   ImagePlus,
-  KeyRound,
   Loader2,
   LogOut,
   PenLine,
   Share2,
   Shield,
   ShieldCheck,
+  ShieldOff,
+  SlidersHorizontal,
   Star,
   TrendingDown,
   TrendingUp,
@@ -31,7 +32,8 @@ import { useAdminMode } from "@/lib/admin-context";
 import { useAdmins } from "@/hooks/use-admins";
 import { useCountUp } from "@/hooks/use-count-up";
 import { ImageCropDialog } from "@/components/app/ImageCropDialog";
-import { AdminConfirmDialog } from "@/components/app/AdminConfirmDialog";
+import { AdminPinDialog } from "@/components/app/AdminPinDialog";
+import { AdminUserActions } from "@/components/app/AdminUserActions";
 import { AdminDeleteReviewButton } from "@/components/app/AdminReviewActions";
 import { formatAverage, formatDate, formatDateTime, pluralRu, timeAgo } from "@/lib/format";
 import { SITE_NAME } from "@/lib/config";
@@ -81,7 +83,7 @@ export function ProfileView({
 }) {
   const { user: me, logout, updateUser } = useAuth();
   const queryClient = useQueryClient();
-  const { admin, enter, exit, adminApi } = useAdminMode();
+  const { admin, exit } = useAdminMode();
   const { adminNames, badgeVisible } = useAdmins();
   const [filter, setFilter] = useState<"all" | number>("all");
   const [sort, setSort] = useState<SortKey>("new");
@@ -89,16 +91,8 @@ export function ProfileView({
   // Верхняя вкладка профиля: «Профиль» / «Друзья» (только для своего). 
   const [mainTab, setMainTab] = useState<"overview" | "friends">("overview");
 
-  // ---- админ-режим: PIN-вход и смена пароля пользователя ----
+  // ---- админ-режим: PIN-вход (действия — в AdminUserActions) ----
   const [pinOpen, setPinOpen] = useState(false);
-  const [pin, setPin] = useState("");
-  const [pinBusy, setPinBusy] = useState(false);
-  const [pinError, setPinError] = useState<string | null>(null);
-  const [pwOpen, setPwOpen] = useState(false);
-  const [pw1, setPw1] = useState("");
-  const [pw2, setPw2] = useState("");
-  const [pwError, setPwError] = useState<string | null>(null);
-  const [pwConfirmOpen, setPwConfirmOpen] = useState(false);
 
   // ---- avatar / banner uploads (kappa.lol, own profile only) ----
   const [picBusy, setPicBusy] = useState<PictureType | null>(null);
@@ -198,51 +192,6 @@ export function ProfileView({
     });
     setPendingScroll(0);
   }, [pendingScroll]);
-
-  /** Вход в админ-режим по PIN. */
-  const submitPin = async () => {
-    if (pinBusy) return;
-    setPinBusy(true);
-    setPinError(null);
-    try {
-      await enter(pin);
-      setPinOpen(false);
-      setPin("");
-      toast("Админ-режим включён — 30 минут");
-    } catch (err) {
-      setPinError(
-        err instanceof ApiError ? err.message : "Не получилось. Попробуйте ещё раз.",
-      );
-    } finally {
-      setPinBusy(false);
-    }
-  };
-
-  /** Открыть смену пароля (после сбора паролей — 10 подтверждений). */
-  const openPasswordChange = () => {
-    if (pw1.length < 8 || pw1 !== pw2) {
-      setPwError(
-        pw1.length < 8
-          ? "Пароль должен быть не короче 8 символов."
-          : "Пароли не совпадают.",
-      );
-      return;
-    }
-    setPwError(null);
-    setPwOpen(false);
-    setPwConfirmOpen(true);
-  };
-
-  const changeUserPassword = async () => {
-    await adminApi(`/api/admin/users/${encodeURIComponent(username)}/password`, {
-      method: "POST",
-      body: { newPassword: pw1 },
-    });
-    setPwConfirmOpen(false);
-    setPw1("");
-    setPw2("");
-    toast.success(`Пароль пользователя ${username} изменён`);
-  };
 
   if (profileQuery.isLoading) {
     return (
@@ -439,11 +388,7 @@ export function ProfileView({
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => {
-                    setPin("");
-                    setPinError(null);
-                    setPinOpen(true);
-                  }}
+                  onClick={() => setPinOpen(true)}
                   aria-label="Войти в админ-режим"
                 >
                   <Shield className="h-4 w-4" aria-hidden />
@@ -599,6 +544,13 @@ export function ProfileView({
                     Админ
                   </span>
                 )}
+                {/* Аккаунт забанен админом — вход закрыт. */}
+                {user.banned && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-destructive/40 bg-destructive/15 px-2.5 py-0.5 text-[11px] font-bold text-destructive">
+                    <ShieldOff className="h-3 w-3" aria-hidden />
+                    Заблокирован
+                  </span>
+                )}
                 {isMe && (
                   <span className="rounded-full border border-primary/40 bg-primary/15 px-2.5 py-0.5 text-[11px] font-bold text-primary">
                     это вы
@@ -645,37 +597,48 @@ export function ProfileView({
       </section>
 
       {/* Блок «Админ» — на странице любого профиля, пока включён
-          админ-режим (смена пароля без знания старого). */}
+          админ-режим: смена ника/пароля, бан и удаление аккаунта
+          (всё — с 10 подтверждениями в AdminUserActions). */}
       {admin && (
         <section
           aria-label="Админ"
           className="mt-4 rounded-[10px] border border-amber-500/40 bg-amber-500/10 p-4"
         >
-          <h2 className="flex items-center gap-1.5 text-sm font-bold">
-            <ShieldCheck className="h-4 w-4 text-amber-500" aria-hidden />
-            Админ
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="flex items-center gap-1.5 text-sm font-bold">
+              <ShieldCheck className="h-4 w-4 text-amber-500" aria-hidden />
+              Админ · действия над {isMe ? "собой" : username}
+            </h2>
+            <Button asChild variant="secondary" size="sm" className="h-8 text-xs font-bold">
+              <a href="#/admin">
+                <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
+                Панель пользователей
+              </a>
+            </Button>
+          </div>
           {isMe ? (
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Свой пароль меняется в настройках профиля.
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+              Свой пароль можно сменить и без старого — кнопки ниже (PIN уже
+              подтверждён). Бан и удаление себе недоступны.
             </p>
           ) : (
-            <div className="mt-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  setPw1("");
-                  setPw2("");
-                  setPwError(null);
-                  setPwOpen(true);
-                }}
-              >
-                <KeyRound className="h-4 w-4" aria-hidden />
-                Сменить пароль пользователю
-              </Button>
-            </div>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+              Ник, пароль, бан — на этом профиле; удаление аккаунта
+              необратимо и требует 10 подтверждений.
+            </p>
           )}
+          <div className="mt-3">
+            <AdminUserActions
+              username={user.username}
+              isSelf={isMe}
+              targetIsAdmin={profileIsAdmin}
+              banned={!!user.banned}
+              onDeleted={() => {
+                // Профиль удалён — уходим домой, страницы больше нет.
+                window.location.hash = "#/admin";
+              }}
+            />
+          </div>
         </section>
       )}
 
@@ -722,154 +685,8 @@ export function ProfileView({
         </>
       )}
 
-      {/* ---- Диалог входа в админ-режим по PIN ---- */}
-      <Dialog
-        open={pinOpen}
-        onOpenChange={(open) => {
-          setPinOpen(open);
-          if (!open) {
-            setPin("");
-            setPinError(null);
-          }
-        }}
-      >
-        <DialogContent className="max-w-sm border-border bg-card/95">
-          <DialogTitle className="flex items-center gap-2 text-base font-extrabold">
-            <Shield className="h-5 w-5 text-amber-500" aria-hidden />
-            Вход в админ-режим
-          </DialogTitle>
-          <DialogDescription className="text-xs leading-relaxed text-muted-foreground">
-            Введите PIN администратора (4 символа). Режим действует 30 минут
-            и выключается при перезагрузке страницы.
-          </DialogDescription>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void submitPin();
-            }}
-            className="mt-2 space-y-2"
-          >
-            <label htmlFor="admin-pin-input" className="sr-only">
-              PIN администратора
-            </label>
-            <input
-              id="admin-pin-input"
-              type="password"
-              value={pin}
-              onChange={(e) => {
-                setPin(e.target.value.replace(/\D/g, "").slice(0, 4));
-                setPinError(null);
-              }}
-              maxLength={4}
-              autoComplete="off"
-              inputMode="numeric"
-              placeholder="••••"
-              autoFocus
-              className="h-11 w-full rounded-md border border-[var(--input)] bg-background px-3 text-center text-lg font-extrabold tracking-[0.4em] outline-none transition-colors focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/20"
-            />
-            {pinError && (
-              <p role="alert" className="text-xs font-semibold text-destructive">
-                {pinError}
-              </p>
-            )}
-            <Button
-              type="submit"
-              disabled={pin.length !== 4 || pinBusy}
-              className="h-10 w-full font-bold"
-            >
-              {pinBusy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
-              {pinBusy ? "Проверяем…" : "Войти в админ-режим"}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* ---- Диалог смены пароля пользователю (админ) ---- */}
-      <Dialog
-        open={pwOpen}
-        onOpenChange={(open) => {
-          setPwOpen(open);
-          if (!open) {
-            setPw1("");
-            setPw2("");
-            setPwError(null);
-          }
-        }}
-      >
-        <DialogContent className="max-w-sm border-border bg-card/95">
-          <DialogTitle className="flex items-center gap-2 text-base font-extrabold">
-            <KeyRound className="h-5 w-5 text-amber-500" aria-hidden />
-            Пароль для {username}
-          </DialogTitle>
-          <DialogDescription className="text-xs leading-relaxed text-muted-foreground">
-            Новый пароль пользователь сможет использовать при следующем
-            входе. Все его текущие сессии будут завершены.
-          </DialogDescription>
-          <div className="mt-2 space-y-2">
-            <label htmlFor="admin-pw-1" className="sr-only">
-              Новый пароль
-            </label>
-            <input
-              id="admin-pw-1"
-              type="password"
-              value={pw1}
-              onChange={(e) => {
-                setPw1(e.target.value);
-                setPwError(null);
-              }}
-              autoComplete="new-password"
-              placeholder="Новый пароль (минимум 8 символов)"
-              className="h-10 w-full rounded-md border border-[var(--input)] bg-background px-3 text-sm outline-none transition-colors focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/20"
-            />
-            <label htmlFor="admin-pw-2" className="sr-only">
-              Повторите новый пароль
-            </label>
-            <input
-              id="admin-pw-2"
-              type="password"
-              value={pw2}
-              onChange={(e) => {
-                setPw2(e.target.value);
-                setPwError(null);
-              }}
-              autoComplete="new-password"
-              placeholder="Повторите пароль"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") openPasswordChange();
-              }}
-              className="h-10 w-full rounded-md border border-[var(--input)] bg-background px-3 text-sm outline-none transition-colors focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/20"
-            />
-            {pwError && (
-              <p role="alert" className="text-xs font-semibold text-destructive">
-                {pwError}
-              </p>
-            )}
-            <Button
-              onClick={openPasswordChange}
-              disabled={pw1.length < 8 || pw1 !== pw2}
-              className="h-10 w-full font-bold"
-            >
-              Продолжить → 10 подтверждений
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* ---- 10 подтверждений смены пароля ---- */}
-      <AdminConfirmDialog
-        open={pwConfirmOpen}
-        title="Сменить пароль пользователю"
-        details={[
-          `Пользователь: ${username}`,
-          "Все его сессии будут завершены, потребуется вход с новым паролем.",
-        ]}
-        finalInput={{
-          label: `Ник пользователя без ошибок: ${username}`,
-          expected: username,
-        }}
-        onConfirm={changeUserPassword}
-        onCancel={() => setPwConfirmOpen(false)}
-      />
+      {/* ---- Диалог входа в админ-режим по PIN (общий компонент) ---- */}
+      <AdminPinDialog open={pinOpen} onOpenChange={setPinOpen} />
 
       {/* Верхние вкладки: Профиль / Друзья (только для своего профиля) */}
       {isMe && (
