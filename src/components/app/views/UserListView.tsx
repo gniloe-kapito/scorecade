@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Users } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { UserAvatar } from "@/components/app/UserAvatar";
+import { AdminUsername } from "@/components/app/AdminUsername";
 import { EmptyState } from "@/components/app/EmptyState";
 import { ListSkeleton } from "@/components/app/Skeletons";
 import { Button } from "@/components/ui/button";
@@ -88,9 +89,11 @@ export function UserListView({
                   className="flex items-center gap-3 py-3 transition-colors hover:bg-secondary/30"
                 >
                   <UserAvatar username={u.username} src={u.avatarUrl} size="md" />
-                  <span className="min-w-0 flex-1 truncate font-bold">
-                    {u.username}
-                  </span>
+                  <AdminUsername
+                    username={u.username}
+                    className="font-bold"
+                    wrapperClassName="flex min-w-0 flex-1"
+                  />
                 </a>
               </li>
             ))}

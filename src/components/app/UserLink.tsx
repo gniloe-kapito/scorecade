@@ -8,6 +8,7 @@ import { api } from "@/lib/api-client";
 import { formatAverage, formatMonthYear } from "@/lib/format";
 import { useAdmins } from "@/hooks/use-admins";
 import { UserAvatar } from "./UserAvatar";
+import { AdminUsername } from "./AdminUsername";
 import { FollowButton } from "./FollowButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -302,9 +303,11 @@ function MiniCard({ user }: { user: UserMini }) {
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1.5">
-            <span className="truncate text-base font-extrabold leading-tight">
-              {user.username}
-            </span>
+            <AdminUsername
+              username={user.username}
+              className="text-base font-extrabold leading-tight"
+              wrapperClassName="flex min-w-0"
+            />
             {user.isMe && (
               <span className="shrink-0 rounded-full border border-primary/40 bg-primary/15 px-1.5 py-px text-[10px] font-bold text-primary">
                 это вы

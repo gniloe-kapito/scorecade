@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useHashRoute, isWideRoute } from "@/lib/router";
 import { NotificationsBell } from "./NotificationsBell";
 import { UserAvatar } from "./UserAvatar";
+import { AdminUsername } from "./AdminUsername";
 import { Wordmark } from "./Wordmark";
 import { cn } from "@/lib/utils";
 
@@ -100,9 +101,11 @@ export function Header() {
               aria-label={`Профиль ${user.username}`}
             >
               <UserAvatar username={user.username} src={user.avatarUrl} size="sm" />
-              <span className="hidden max-w-[110px] truncate text-sm font-semibold sm:inline">
-                {user.username}
-              </span>
+              <AdminUsername
+                username={user.username}
+                className="text-sm font-semibold"
+                wrapperClassName="hidden max-w-[110px] sm:flex"
+              />
             </a>
           )}
         </div>

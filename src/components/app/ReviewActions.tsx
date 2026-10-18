@@ -17,6 +17,7 @@ import { timeAgo, formatDateTime } from "@/lib/format";
 import { AdminDeleteCommentButton } from "@/components/app/AdminReviewActions";
 import { UserAvatar } from "@/components/app/UserAvatar";
 import { UserLink } from "@/components/app/UserLink";
+import { AdminUsername } from "@/components/app/AdminUsername";
 import { LikeButton } from "@/components/app/LikeButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -441,7 +442,13 @@ function CommentRow({
           />{" "}
           {isReply && showReplyTo && (
             <span className="text-muted-foreground/70">
-              → {showReplyTo}{" "}
+              {"→ "}
+              <AdminUsername
+                username={showReplyTo}
+                className="text-muted-foreground/70"
+                wrapperClassName="inline-flex"
+              />
+              {" "}
             </span>
           )}
           <span

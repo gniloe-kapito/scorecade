@@ -19,6 +19,8 @@ import { GameCover } from "@/components/app/GameCover";
 import { EmptyState } from "@/components/app/EmptyState";
 import { FollowButton } from "@/components/app/FollowButton";
 import { UserAvatar } from "@/components/app/UserAvatar";
+import { UserLink } from "@/components/app/UserLink";
+import { AdminUsername } from "@/components/app/AdminUsername";
 import { openGameModal, gameModalClickHandler } from "@/components/app/game-modal-store";
 import { CapsuleGridSkeleton, ListSkeleton } from "@/components/app/Skeletons";
 import { Button } from "@/components/ui/button";
@@ -878,9 +880,7 @@ function FriendsPanel({
                 <UserAvatar username={f.username} src={f.avatarUrl} size="sm" />
               </a>
               <div className="feedtext min-w-0">
-                <a href={`#/u/${f.username}`} className="font-bold hover:text-primary">
-                  {f.username}
-                </a>{" "}
+                <UserLink username={f.username} className="font-bold" />{" "}
                 оценил(а){" "}
                 <a
                   href={`#/game/${f.gameId}`}
@@ -1245,7 +1245,11 @@ function UserSearchResults({
             <UserAvatar username={u.username} src={u.avatarUrl} size="md" />
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-1.5">
-                <span className="truncate text-sm font-bold">{u.username}</span>
+                <AdminUsername
+                  username={u.username}
+                  className="text-sm font-bold"
+                  wrapperClassName="flex min-w-0"
+                />
                 {u.isMe && (
                   <span className="shrink-0 rounded-full border border-primary/40 bg-primary/15 px-1.5 py-px text-[10px] font-bold text-primary">
                     это вы

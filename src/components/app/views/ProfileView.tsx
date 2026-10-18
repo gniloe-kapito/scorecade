@@ -34,6 +34,7 @@ import { useCountUp } from "@/hooks/use-count-up";
 import { ImageCropDialog } from "@/components/app/ImageCropDialog";
 import { AdminPinDialog } from "@/components/app/AdminPinDialog";
 import { AdminUserActions } from "@/components/app/AdminUserActions";
+import { AdminUsername } from "@/components/app/AdminUsername";
 import { AdminDeleteReviewButton } from "@/components/app/AdminReviewActions";
 import { formatAverage, formatDate, formatDateTime, pluralRu, timeAgo } from "@/lib/format";
 import { SITE_NAME } from "@/lib/config";
@@ -1229,9 +1230,11 @@ function ProfileFriendsTab({
                 >
                   <UserAvatar username={f.username} src={f.avatarUrl} size="md" />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-bold transition-colors hover:text-primary">
-                      {f.username}
-                    </span>
+                    <AdminUsername
+                      username={f.username}
+                      className="text-sm font-bold transition-colors hover:text-primary"
+                      wrapperClassName="flex min-w-0"
+                    />
                     <span className="mt-0.5 block text-[10px] text-muted-foreground">
                       ваша подписка
                     </span>
